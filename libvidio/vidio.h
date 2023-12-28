@@ -37,10 +37,25 @@
 #define LIBVIDIO_API
 #endif
 
+#include <stdint.h>
+
 
 extern "C" {
 
-LIBVIDIO_API const char* vidio_get_version_name();
+/* === version numbers === */
+
+// Version string of linked libheif library.
+LIBVIDIO_API const char* vidio_get_version(void);
+
+// BCD-coded numeric version of linked libheif library, encoded as 0xHHMMLL00.
+LIBVIDIO_API uint32_t vidio_get_version_number(void);
+
+// Numeric part "HH" from above. Returned as a decimal number.
+LIBVIDIO_API int vidio_get_version_number_major(void);
+// Numeric part "MM" from above. Returned as a decimal number.
+LIBVIDIO_API int vidio_get_version_number_minor(void);
+// Numeric part "LL" from above. Returned as a decimal number.
+LIBVIDIO_API int vidio_get_version_number_patch(void);
 };
 
 #endif //LIBVIDIO_VIDIO_H

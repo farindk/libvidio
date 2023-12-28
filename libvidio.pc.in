@@ -1,0 +1,14 @@
+prefix=@prefix@
+exec_prefix=@exec_prefix@
+libdir=@libdir@
+includedir=@includedir@
+
+Name: libvidio
+Description: VideoIO camera capture library.
+URL: https://github.com/farindk/libvidio
+Version: @PROJECT_VERSION@
+Requires:
+Requires.private: @REQUIRES_PRIVATE@
+Libs: -L${libdir} -lvidio
+Libs.private: @LIBS_PRIVATE@
+Cflags: -I${includedir}

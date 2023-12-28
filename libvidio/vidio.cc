@@ -19,9 +19,49 @@
  */
 
 #include "libvidio/vidio.h"
+#include <cassert>
 
 
-const char* vidio_get_version_name()
+static uint8_t vidio_version_major = VIDIO_VERSION_MAJOR;
+static uint8_t vidio_version_minor = VIDIO_VERSION_MINOR;
+static uint8_t vidio_version_patch = VIDIO_VERSION_PATCH;
+
+#define xstr(s) str(s)
+#define str(s) #s
+
+static const char* vidio_version_string = xstr(VIDIO_VERSION_MAJOR) "." xstr(VIDIO_VERSION_MINOR) "." xstr(VIDIO_VERSION_PATCH);
+
+const char* vidio_get_version(void)
 {
-  return "videio test version";
+  return vidio_version_string;
+}
+
+static constexpr int encode_bcd(int v)
+{
+  assert(v <= 99);
+  assert(v >= 0);
+
+  return (v / 10) * 16 + (v % 10);
+}
+
+uint32_t vidio_get_version_number(void)
+{
+  return ((encode_bcd(vidio_version_major) << 16) |
+          (encode_bcd(vidio_version_minor) << 8) |
+          (encode_bcd(vidio_version_patch)));
+}
+
+int vidio_get_version_number_major(void)
+{
+  return vidio_version_major;
+}
+
+int vidio_get_version_number_minor(void)
+{
+  return vidio_version_minor;
+}
+
+int vidio_get_version_number_patch(void)
+{
+  return vidio_version_patch;
 }

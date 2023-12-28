@@ -23,7 +23,7 @@
 
 int main(int argc, char** argv)
 {
-  printf("vidio_version: %s\n", vidio_get_version_name());
+  printf("vidio_version: %s\n", vidio_get_version());
 
   return 0;
 }
