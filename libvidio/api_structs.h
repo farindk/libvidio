@@ -18,20 +18,16 @@
  * along with libvidio.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include "libvidio/vidio.h"
-#include <stdio.h>
+#ifndef LIBVIDIO_API_STRUCTS_H
+#define LIBVIDIO_API_STRUCTS_H
 
-int main(int argc, char** argv)
+#include <string>
+#include <memory>
+
+
+struct vidio_input_device_info
 {
-  printf("vidio_version: %s\n", vidio_get_version());
+  std::shared_ptr<class VidioInputDeviceInfo> device_info;
+};
 
-  const vidio_input_device_info** devices;
-  auto n = vidio_list_input_devices(&devices, nullptr);
-  for (size_t i=0;i<n;i++) {
-    auto name = vidio_input_device_info_get_name(devices[i]);
-    printf("> %s\n", name);
-    vidio_free_string(name);
-  }
-
-  return 0;
-}
+#endif //LIBVIDIO_API_STRUCTS_H

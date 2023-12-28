@@ -38,6 +38,7 @@
 #endif
 
 #include <stdint.h>
+#include <stddef.h>
 
 
 extern "C" {
@@ -56,6 +57,25 @@ LIBVIDIO_API int vidio_get_version_number_major(void);
 LIBVIDIO_API int vidio_get_version_number_minor(void);
 // Numeric part "LL" from above. Returned as a decimal number.
 LIBVIDIO_API int vidio_get_version_number_patch(void);
+
+
+LIBVIDIO_API void vidio_free_string(const char*);
+
+struct vidio_input_device_info;
+struct vidio_input_device;
+struct vidio_input_device_v4l;
+struct vidio_input_device_filter;
+
+enum vidio_input_device_backend {
+  vidio_input_device_backend_Video4Linux2 = 1
+};
+
+LIBVIDIO_API size_t vidio_list_input_devices(const struct vidio_input_device_info*** out_devices, const struct vidio_input_device_filter*);
+
+LIBVIDIO_API const char* vidio_input_device_info_get_name(const struct vidio_input_device_info* device);
+
+LIBVIDIO_API enum vidio_input_device_backend vidio_input_device_info_get_input_device_backend(const struct vidio_input_device_info* device);
+
 };
 
 #endif //LIBVIDIO_VIDIO_H

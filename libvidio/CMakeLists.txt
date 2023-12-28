@@ -39,6 +39,12 @@ target_compile_definitions(vidio PRIVATE VIDIO_VERSION_MAJOR=${PROJECT_VERSION_M
 target_compile_definitions(vidio PRIVATE VIDIO_VERSION_MINOR=${PROJECT_VERSION_MINOR})
 target_compile_definitions(vidio PRIVATE VIDIO_VERSION_PATCH=${PROJECT_VERSION_PATCH})
 
+if (WITH_VIDEO4LINUX2)
+    target_compile_definitions(vidio PRIVATE WITH_VIDEO4LINUX2)
+
+    add_subdirectory(v4l)
+endif()
+
 if (ENABLE_MULTITHREADING_SUPPORT)
     find_package(Threads)
     target_link_libraries(vidio PRIVATE ${CMAKE_THREAD_LIBS_INIT})
