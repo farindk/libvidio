@@ -10,10 +10,10 @@
 #include <vector>
 
 
-class VidioInput
+struct vidio_input
 {
 public:
-  virtual ~VidioInput() = default;
+  virtual ~vidio_input() = default;
 
   virtual vidio_input_source get_source() const = 0;
 
@@ -21,9 +21,9 @@ public:
 };
 
 
-class VidioInputDevice : public VidioInput {
+struct vidio_input_device : public vidio_input {
 public:
-  static std::vector<VidioInputDevice*> list_input_devices(const struct vidio_input_device_filter*);
+  static std::vector<vidio_input_device*> list_input_devices(const struct vidio_input_device_filter*);
 };
 
 #endif //LIBVIDIO_VIDIOINPUTSOURCE_H

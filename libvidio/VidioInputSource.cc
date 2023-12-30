@@ -10,12 +10,12 @@
 #endif
 
 
-std::vector<VidioInputDevice*> VidioInputDevice::list_input_devices(const struct vidio_input_device_filter* filter)
+std::vector<vidio_input_device*> vidio_input_device::list_input_devices(const struct vidio_input_device_filter* filter)
 {
-  std::vector<VidioInputDevice*> devices;
+  std::vector<vidio_input_device*> devices;
 
 #if WITH_VIDEO4LINUX2
-  std::vector<VidioInputDeviceV4L*> devs;
+  std::vector<vidio_input_device_v4l*> devs;
   devs = v4l_list_input_devices(filter);
 
   for (auto d : devs) {

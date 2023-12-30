@@ -26,6 +26,7 @@
 #include "VidioInputSource.h"
 #include "v4l/v4l.h"
 
+/*
 class VidioInputFile : public VidioInput {}; // TODO
 
 struct vidio_input : public VidioInput {};
@@ -36,5 +37,6 @@ struct vidio_input_device_v4l : public VidioInputDeviceV4L {};
 // struct vidio_input_device_list
 
 struct vidio_input_device_filter; // TODO
+*/
 
 #endif //LIBVIDIO_API_STRUCTS_H

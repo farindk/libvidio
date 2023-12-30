@@ -13,7 +13,7 @@
 #include <libvidio/VidioInputSource.h>
 
 
-class VidioInputDeviceV4L : public VidioInputDevice {
+struct vidio_input_device_v4l : public vidio_input_device {
 public:
   bool query_device(const char* filename);
 
@@ -28,6 +28,6 @@ private:
 };
 
 
-std::vector<VidioInputDeviceV4L*> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
+std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
 
 #endif //LIBVIDIO_V4L_H

@@ -14,7 +14,7 @@
 #include <unistd.h>
 
 
-bool VidioInputDeviceV4L::query_device(const char* filename)
+bool vidio_input_device_v4l::query_device(const char* filename)
 {
   int fd = open(filename, 0);
   if (fd == -1) {
@@ -42,9 +42,9 @@ bool VidioInputDeviceV4L::query_device(const char* filename)
 }
 
 
-std::vector<VidioInputDeviceV4L*> v4l_list_input_devices(const struct vidio_input_device_filter* filter)
+std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_input_device_filter* filter)
 {
-  std::vector<VidioInputDeviceV4L*> devices;
+  std::vector<vidio_input_device_v4l*> devices;
 
   DIR *d;
   struct dirent *dir;
@@ -52,7 +52,7 @@ std::vector<VidioInputDeviceV4L*> v4l_list_input_devices(const struct vidio_inpu
   if (d) {
     while ((dir = readdir(d)) != NULL) {
       if (strncmp(dir->d_name, "video", 5)==0) {
-        auto device = new VidioInputDeviceV4L();
+        auto device = new vidio_input_device_v4l();
 
         if (device->query_device((std::string{"/dev/"} + dir->d_name).c_str())) {
           devices.push_back(device);
