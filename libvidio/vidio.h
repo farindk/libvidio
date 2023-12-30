@@ -79,9 +79,9 @@ enum vidio_input_source {
   vidio_input_source_Video4Linux2 = 1
 };
 
-LIBVIDIO_API size_t vidio_list_input_devices(const struct vidio_input_device*** out_devices, const struct vidio_input_device_filter*);
+LIBVIDIO_API const struct vidio_input_device** vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
 
-LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int n);
+LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int also_free_devices);
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 

@@ -74,23 +74,32 @@ void vidio_free_string(const char* s)
 }
 
 
-
-size_t vidio_list_input_devices(const struct vidio_input_device*** out_devices, const struct vidio_input_device_filter* filter)
+const struct vidio_input_device** vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)
 {
   std::vector<VidioInputDevice*> devices = VidioInputDevice::list_input_devices(filter);
 
-  auto devlist = new vidio_input_device*[devices.size()];
-  for (size_t i=0;i<devices.size();i++) {
-    devlist[i] = static_cast<vidio_input_device*>(devices[i]);
+  auto devlist = new vidio_input_device* [devices.size() + 1];
+  for (size_t i = 0; i < devices.size(); i++) {
+    devlist[i] = reinterpret_cast<vidio_input_device*>(devices[i]);
   }
 
-  *out_devices = (const struct vidio_input_device**)devlist;
+  devlist[devices.size()] = nullptr;
 
-  return devices.size();
+  if (out_number) {
+    *out_number = devices.size();
+  }
+
+  return (const struct vidio_input_device**) devlist;
 }
 
-void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int n)
+void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int also_free_devices)
 {
+  if (also_free_devices) {
+    for (auto p = out_devices; *p; p++) {
+      delete *p;
+    }
+  }
+
   delete[] out_devices;
 }
 

@@ -25,6 +25,12 @@ bool VidioInputDeviceV4L::query_device(const char* filename)
 
   ret = ioctl(fd, VIDIOC_QUERYCAP, &m_caps);
   if (ret == -1) {
+    close(fd);
+    return false;
+  }
+
+  if (!(m_caps.device_caps & V4L2_CAP_VIDEO_CAPTURE)) {
+    close(fd);
     return false;
   }
 
