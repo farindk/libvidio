@@ -61,20 +61,31 @@ LIBVIDIO_API int vidio_get_version_number_patch(void);
 
 LIBVIDIO_API void vidio_free_string(const char*);
 
-struct vidio_input_device_info;
+/*
+ * Hierarchy:
+ * vidio_input
+ * +- vidio_input_device
+ * |  +- vidio_input_device_v4l
+ * +- vidio_input_file
+ */
+
+struct vidio_input;
+struct vidio_input_file;
 struct vidio_input_device;
 struct vidio_input_device_v4l;
 struct vidio_input_device_filter;
 
-enum vidio_input_device_backend {
-  vidio_input_device_backend_Video4Linux2 = 1
+enum vidio_input_source {
+  vidio_input_source_Video4Linux2 = 1
 };
 
-LIBVIDIO_API size_t vidio_list_input_devices(const struct vidio_input_device_info*** out_devices, const struct vidio_input_device_filter*);
+LIBVIDIO_API size_t vidio_list_input_devices(const struct vidio_input_device*** out_devices, const struct vidio_input_device_filter*);
 
-LIBVIDIO_API const char* vidio_input_device_info_get_name(const struct vidio_input_device_info* device);
+LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int n);
 
-LIBVIDIO_API enum vidio_input_device_backend vidio_input_device_info_get_input_device_backend(const struct vidio_input_device_info* device);
+LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
+
+LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_input* input);
 
 };
 

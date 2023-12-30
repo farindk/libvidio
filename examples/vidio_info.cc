@@ -25,10 +25,10 @@ int main(int argc, char** argv)
 {
   printf("vidio_version: %s\n", vidio_get_version());
 
-  const vidio_input_device_info** devices;
+  const vidio_input_device** devices;
   auto n = vidio_list_input_devices(&devices, nullptr);
   for (size_t i=0;i<n;i++) {
-    auto name = vidio_input_device_info_get_name(devices[i]);
+    auto name = vidio_input_get_display_name((vidio_input*)devices[i]);
     printf("> %s\n", name);
     vidio_free_string(name);
   }

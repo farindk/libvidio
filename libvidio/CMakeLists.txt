@@ -5,6 +5,8 @@ set(libvidio_headers
 
 set(libvidio_sources
         vidio.cc
+        VidioInputSource.cc
+        VidioInputSource.h
         ${libvidio_headers})
 
 add_library(vidio ${libvidio_sources})

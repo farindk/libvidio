@@ -10,25 +10,16 @@
 #include <vector>
 #include <memory>
 #include <libvidio/vidio.h>
+#include <libvidio/VidioInputSource.h>
 
 
-class VidioInputDeviceInfo {
-public:
-  virtual ~VidioInputDeviceInfo() = default;
-
-  virtual std::string get_device_name() const = 0;
-
-  virtual vidio_input_device_backend get_backend() const = 0;
-};
-
-
-class VidioInputDeviceInfo_V4L : public VidioInputDeviceInfo {
+class VidioInputDeviceV4L : public VidioInputDevice {
 public:
   bool query_device(const char* filename);
 
-  std::string get_device_name() const override { return std::string((char*)&m_caps.card[0]); }
+  std::string get_display_name() const override { return std::string((char*)&m_caps.card[0]); }
 
-  vidio_input_device_backend get_backend() const override { return vidio_input_device_backend_Video4Linux2; }
+  vidio_input_source get_source() const override { return vidio_input_source_Video4Linux2; }
 
 private:
   std::string m_device_file;
@@ -37,6 +28,6 @@ private:
 };
 
 
-std::vector<std::shared_ptr<VidioInputDeviceInfo_V4L>> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
+std::vector<VidioInputDeviceV4L*> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
 
 #endif //LIBVIDIO_V4L_H

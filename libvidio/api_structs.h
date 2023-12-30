@@ -23,11 +23,18 @@
 
 #include <string>
 #include <memory>
+#include "VidioInputSource.h"
+#include "v4l/v4l.h"
 
+class VidioInputFile : public VidioInput {}; // TODO
 
-struct vidio_input_device_info
-{
-  std::shared_ptr<class VidioInputDeviceInfo> device_info;
-};
+struct vidio_input : public VidioInput {};
+struct vidio_input_file : public VidioInputFile {};
+struct vidio_input_device : public VidioInputDevice {};
+struct vidio_input_device_v4l : public VidioInputDeviceV4L {};
+
+// struct vidio_input_device_list
+
+struct vidio_input_device_filter; // TODO
 
 #endif //LIBVIDIO_API_STRUCTS_H

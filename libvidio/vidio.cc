@@ -23,10 +23,6 @@
 #include <cassert>
 #include <cstring>
 
-#if WITH_VIDEO4LINUX2
-#include "v4l/v4l.h"
-#endif
-
 static uint8_t vidio_version_major = VIDIO_VERSION_MAJOR;
 static uint8_t vidio_version_minor = VIDIO_VERSION_MINOR;
 static uint8_t vidio_version_patch = VIDIO_VERSION_PATCH;
@@ -79,29 +75,25 @@ void vidio_free_string(const char* s)
 
 
 
-size_t vidio_list_input_devices(const struct vidio_input_device_info*** out_devices, const struct vidio_input_device_filter* filter)
+size_t vidio_list_input_devices(const struct vidio_input_device*** out_devices, const struct vidio_input_device_filter* filter)
 {
-  std::vector<std::shared_ptr<VidioInputDeviceInfo>> devices;
+  std::vector<VidioInputDevice*> devices = VidioInputDevice::list_input_devices(filter);
 
-#if WITH_VIDEO4LINUX2
-  std::vector<std::shared_ptr<VidioInputDeviceInfo_V4L>> devs;
-  devs = v4l_list_input_devices(filter);
-
-  for (auto d : devs) {
-    devices.emplace_back(d);
-  }
-#endif
-
-  auto devlist = new vidio_input_device_info*[devices.size()];
+  auto devlist = new vidio_input_device*[devices.size()];
   for (size_t i=0;i<devices.size();i++) {
-    devlist[i] = new vidio_input_device_info();
-    devlist[i]->device_info = devices[i];
+    devlist[i] = static_cast<vidio_input_device*>(devices[i]);
   }
 
-  *out_devices = (const struct vidio_input_device_info**)devlist;
+  *out_devices = (const struct vidio_input_device**)devlist;
 
   return devices.size();
 }
+
+void vidio_input_devices_free_list(const struct vidio_input_device** out_devices, int n)
+{
+  delete[] out_devices;
+}
+
 
 const char* make_vidio_string(const std::string& s)
 {
@@ -110,12 +102,12 @@ const char* make_vidio_string(const std::string& s)
   return out;
 }
 
-const char* vidio_input_device_info_get_name(const struct vidio_input_device_info* device)
+const char* vidio_input_get_display_name(const struct vidio_input* input)
 {
-  return make_vidio_string(device->device_info->get_device_name());
+  return make_vidio_string(input->get_display_name());
 }
 
-enum vidio_input_device_backend vidio_input_device_info_get_input_device_backend(const struct vidio_input_device_info* device)
+enum vidio_input_source vidio_input_get_source(const struct vidio_input* input)
 {
-  return device->device_info->get_backend();
+  return input->get_source();
 }
