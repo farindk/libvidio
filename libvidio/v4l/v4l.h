@@ -10,7 +10,7 @@
 #include <vector>
 #include <memory>
 #include <libvidio/vidio.h>
-#include <libvidio/VidioInputSource.h>
+#include <libvidio/vidio_input.h>
 
 
 struct vidio_input_device_v4l : public vidio_input_device {

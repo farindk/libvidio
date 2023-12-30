@@ -2,7 +2,7 @@
 // Created by farindk on 30.12.23.
 //
 
-#include <libvidio/VidioInputSource.h>
+#include <libvidio/vidio_input.h>
 #include <vector>
 
 #if WITH_VIDEO4LINUX2

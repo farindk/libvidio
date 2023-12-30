@@ -2,8 +2,8 @@
 // Created by farindk on 29.12.23.
 //
 
-#ifndef LIBVIDIO_VIDIOINPUTSOURCE_H
-#define LIBVIDIO_VIDIOINPUTSOURCE_H
+#ifndef LIBVIDIO_VIDIO_INPUT_H
+#define LIBVIDIO_VIDIO_INPUT_H
 
 #include <libvidio/vidio.h>
 #include <string>
@@ -26,4 +26,4 @@ public:
   static std::vector<vidio_input_device*> list_input_devices(const struct vidio_input_device_filter*);
 };
 
-#endif //LIBVIDIO_VIDIOINPUTSOURCE_H
+#endif //LIBVIDIO_VIDIO_INPUT_H

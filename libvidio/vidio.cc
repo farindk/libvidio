@@ -19,7 +19,7 @@
  */
 
 #include "libvidio/vidio.h"
-#include "api_structs.h"
+#include "libvidio/vidio_input.h"
 #include <cassert>
 #include <cstring>
 
