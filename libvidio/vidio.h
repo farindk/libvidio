@@ -82,7 +82,7 @@ enum vidio_input_source {
 enum vidio_pixel_format_class {
   vidio_pixel_format_class_unknown = 0,
   vidio_pixel_format_class_RGB = 1,
-  vidio_pixel_format_class_YCbCr = 2,
+  vidio_pixel_format_class_YUV = 2,
   vidio_pixel_format_class_MJPEG = 3,
   vidio_pixel_format_class_H264 = 4,
   vidio_pixel_format_class_H265 = 5
@@ -98,12 +98,13 @@ LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_i
 
 
 struct vidio_video_format {
-  int width, height;
-  int framerate_num, framerate_den;
+  uint32_t width, height;
+  uint32_t framerate_num, framerate_den;
   enum vidio_pixel_format_class pixel_format_class;
+  uint32_t pixel_format_fourcc;
 };
 
-LIBVIDIO_API const struct vidio_video_format* vidio_input_get_selection_of_video_formats(const struct vidio_input* input, size_t* out_number);
+LIBVIDIO_API const struct vidio_video_format* vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
 
 LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format*);
 

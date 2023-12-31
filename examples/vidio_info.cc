@@ -20,6 +20,7 @@
 
 #include "libvidio/vidio.h"
 #include <cstdio>
+#include <iostream>
 
 int main(int argc, char** argv)
 {
@@ -30,6 +31,14 @@ int main(int argc, char** argv)
     auto name = vidio_input_get_display_name((vidio_input*)devices[i]);
     printf("> %s\n", name);
     vidio_free_string(name);
+
+    size_t nFormats;
+    const struct vidio_video_format* formats = vidio_input_get_video_formats((vidio_input*)devices[i], &nFormats);
+    for (size_t f=0;f<nFormats;f++) {
+      std::cout << formats[f].pixel_format_class << " " << formats[f].width << "x" << formats[f].height
+      << " @ " << formats[f].framerate_num << "/" << formats[f].framerate_den << "\n";
+    }
+    vidio_video_formats_free_list(formats);
   }
 
   vidio_input_devices_free_list(devices, true);

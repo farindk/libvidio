@@ -42,6 +42,8 @@ public:
 
   bool has_video_capture_capability() const;
 
+  std::vector<vidio_video_format> get_video_formats() const;
+
 private:
   std::string m_device_file;
   int m_fd = -1; // < 0 if closed
@@ -87,7 +89,7 @@ public:
     m_v4l_capture_devices.emplace_back(dev);
   }
 
-  std::vector<vidio_video_format> get_selection_of_video_formats() const override;
+  std::vector<vidio_video_format> get_video_formats() const override;
 
 private:
   std::vector<vidio_v4l_raw_device*> m_v4l_capture_devices;
