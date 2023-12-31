@@ -120,3 +120,26 @@ enum vidio_input_source vidio_input_get_source(const struct vidio_input* input)
 {
   return input->get_source();
 }
+
+
+const struct vidio_video_format* vidio_input_get_selection_of_video_formats(const struct vidio_input* input, size_t* out_number)
+{
+  auto formats = input->get_selection_of_video_formats();
+
+  auto outFormats = new vidio_video_format[formats.size() + 1];
+  for (size_t i = 0; i < formats.size(); i++) {
+    outFormats[i] = formats[i];
+  }
+  outFormats[formats.size()] = {0, 0, 0, 0, vidio_pixel_format_class_unknown};
+
+  if (out_number) {
+    *out_number = formats.size();
+  }
+
+  return outFormats;
+}
+
+void vidio_video_formats_free_list(const struct vidio_video_format* formats)
+{
+  delete[] formats;
+}

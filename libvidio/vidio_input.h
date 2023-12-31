@@ -34,6 +34,8 @@ public:
   virtual vidio_input_source get_source() const = 0;
 
   virtual std::string get_display_name() const = 0;
+
+  virtual std::vector<vidio_video_format> get_selection_of_video_formats() const = 0;
 };
 
 

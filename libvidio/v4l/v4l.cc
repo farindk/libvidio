@@ -32,29 +32,141 @@
 
 bool vidio_v4l_raw_device::query_device(const char* filename)
 {
-  int fd = open(filename, 0);
-  if (fd == -1) {
+  m_fd = open(filename, 0);
+  if (m_fd == -1) {
     return false;
   }
 
   int ret;
 
-  ret = ioctl(fd, VIDIOC_QUERYCAP, &m_caps);
+  ret = ioctl(m_fd, VIDIOC_QUERYCAP, &m_caps);
   if (ret == -1) {
-    close(fd);
-    return false;
-  }
-
-  if (!(m_caps.device_caps & V4L2_CAP_VIDEO_CAPTURE)) {
-    close(fd);
+    close(m_fd);
+    m_fd = -1;
     return false;
   }
 
   m_device_file = filename;
 
-  close(fd);
+  if (has_video_capture_capability()) {
+
+    auto formats = list_v4l_formats(V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    for (auto f : formats) {
+      format_v4l format;
+      format.m_fmtdesc = f;
+
+      printf("FORMAT: %s\n", f.description);
+
+      auto frmsizes = list_v4l_framesizes(f.pixelformat);
+      for (auto s : frmsizes) {
+        framesize_v4l fsize;
+        fsize.m_framesize = s;
+
+        printf("frmsize-type: %d\n", s.type);
+
+        std::vector<v4l2_frmivalenum> frmintervals;
+        if (s.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+          frmintervals = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
+        }
+        else {
+          frmintervals = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
+        }
+
+
+        for (auto i : frmintervals) {
+          printf("interv (%d x %d) : %d %f\n", i.width, i.height,
+                 i.type,
+                 (i.discrete.denominator / (float) i.discrete.numerator));
+        }
+
+        fsize.m_frameintervals = frmintervals;
+
+        format.m_framesizes.emplace_back(fsize);
+      }
+
+      m_formats.emplace_back(format);
+    }
+  }
+
+  close(m_fd);
+  m_fd = -1;
 
   return true;
+}
+
+
+std::vector<v4l2_fmtdesc> vidio_v4l_raw_device::list_v4l_formats(__u32 type) const
+{
+  std::vector<v4l2_fmtdesc> fmts;
+
+  assert(m_fd >= 0);
+
+  v4l2_fmtdesc fmtdesc{};
+  fmtdesc.type = type;
+  for (fmtdesc.index = 0;; fmtdesc.index++) {
+    int ret = ioctl(m_fd, VIDIOC_ENUM_FMT, &fmtdesc);
+    if (ret < 0) {
+      // usually: errno == EINVAL
+      break;
+    }
+
+    fmts.emplace_back(fmtdesc);
+  }
+
+  return fmts;
+}
+
+
+std::vector<v4l2_frmsizeenum> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pixel_type) const
+{
+  std::vector<v4l2_frmsizeenum> frmsizes;
+
+  assert(m_fd >= 0);
+
+  v4l2_frmsizeenum framesize{};
+  framesize.pixel_format = pixel_type;
+  for (framesize.index = 0;; framesize.index++) {
+    int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMESIZES, &framesize);
+    if (ret < 0) {
+      // usually: errno == EINVAL
+      break;
+    }
+
+    frmsizes.emplace_back(framesize);
+  }
+
+  return frmsizes;
+}
+
+
+std::vector<v4l2_frmivalenum> vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const
+{
+  std::vector<v4l2_frmivalenum> frmivals;
+
+  assert(m_fd >= 0);
+
+  v4l2_frmivalenum frameinterval{};
+  frameinterval.pixel_format = pixel_type;
+  frameinterval.width = width;
+  frameinterval.height = height;
+
+  for (frameinterval.index = 0;; frameinterval.index++) {
+    int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMEINTERVALS, &frameinterval);
+    if (ret < 0) {
+      // usually: errno == EINVAL
+      break;
+    }
+
+    frmivals.emplace_back(frameinterval);
+  }
+
+  return frmivals;
+}
+
+
+bool vidio_v4l_raw_device::has_video_capture_capability() const
+{
+  return (m_caps.device_caps & (V4L2_CAP_VIDEO_CAPTURE | V4L2_CAP_VIDEO_CAPTURE_MPLANE)) != 0;
 }
 
 
@@ -75,24 +187,29 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
   std::vector<vidio_v4l_raw_device*> rawdevices;
   std::vector<vidio_input_device_v4l*> devices;
 
-  DIR *d;
-  struct dirent *dir;
+  DIR* d;
+  struct dirent* dir;
   d = opendir("/dev");
   if (d) {
     while ((dir = readdir(d)) != nullptr) {
-      if (strncmp(dir->d_name, "video", 5)==0) {
+      if (strncmp(dir->d_name, "video", 5) == 0) {
         auto device = new vidio_v4l_raw_device();
 
         if (device->query_device((std::string{"/dev/"} + dir->d_name).c_str())) {
-          rawdevices.push_back(device);
+          if (device->has_video_capture_capability()) {
+            rawdevices.push_back(device);
+          }
         }
-        else {
+
+        // if we didn't add it to the list, delete it again
+        if (rawdevices.empty() || rawdevices.back() != device) {
           delete device;
         }
       }
     }
     closedir(d);
   }
+
 
   // --- group v4l devices that operate on the same hardware
 
@@ -118,4 +235,13 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
   }
 
   return devices;
+}
+
+
+std::vector<vidio_video_format> vidio_input_device_v4l::get_selection_of_video_formats() const
+{
+  std::vector<vidio_video_format> formats;
+
+
+  return formats;
 }

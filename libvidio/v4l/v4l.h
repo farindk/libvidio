@@ -29,22 +29,50 @@
 #include <libvidio/vidio_input.h>
 
 
-struct vidio_v4l_raw_device {
+struct vidio_v4l_raw_device
+{
 public:
   bool query_device(const char* filename);
 
-  std::string get_bus_info() const { return {(char*)&m_caps.bus_info[0]}; }
+  std::string get_bus_info() const { return {(char*) &m_caps.bus_info[0]}; }
 
-  std::string get_display_name() const { return {(char*)&m_caps.card[0]}; }
+  std::string get_display_name() const { return {(char*) &m_caps.card[0]}; }
+
+  const v4l2_capability& get_v4l_capabilities() const { return m_caps; }
+
+  bool has_video_capture_capability() const;
 
 private:
   std::string m_device_file;
+  int m_fd = -1; // < 0 if closed
 
   struct v4l2_capability m_caps;
+
+  struct framesize_v4l
+  {
+    v4l2_frmsizeenum m_framesize;
+    std::vector<v4l2_frmivalenum> m_frameintervals;
+  };
+
+  struct format_v4l
+  {
+    v4l2_fmtdesc m_fmtdesc;
+    std::vector<framesize_v4l> m_framesizes;
+  };
+
+  std::vector<format_v4l> m_formats;
+
+  // type = V4L2_BUF_TYPE_VIDEO_CAPTURE or type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
+  std::vector<v4l2_fmtdesc> list_v4l_formats(__u32 type) const;
+
+  std::vector<v4l2_frmsizeenum> list_v4l_framesizes(__u32 pixel_type) const;
+
+  std::vector<v4l2_frmivalenum> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
 };
 
 
-struct vidio_input_device_v4l : public vidio_input_device {
+struct vidio_input_device_v4l : public vidio_input_device
+{
 public:
   explicit vidio_input_device_v4l(vidio_v4l_raw_device* d) { m_v4l_capture_devices.emplace_back(d); }
 
@@ -54,9 +82,12 @@ public:
 
   bool matches_v4l_raw_device(const vidio_v4l_raw_device*) const;
 
-  void add_v4l_raw_device(vidio_v4l_raw_device* dev) {
+  void add_v4l_raw_device(vidio_v4l_raw_device* dev)
+  {
     m_v4l_capture_devices.emplace_back(dev);
   }
+
+  std::vector<vidio_video_format> get_selection_of_video_formats() const override;
 
 private:
   std::vector<vidio_v4l_raw_device*> m_v4l_capture_devices;
