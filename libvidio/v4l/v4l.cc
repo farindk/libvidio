@@ -22,7 +22,6 @@
 #include <dirent.h>
 #include <cstdio>
 #include <cstring>
-#include <optional>
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <sys/ioctl.h>
@@ -80,7 +79,7 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
   struct dirent *dir;
   d = opendir("/dev");
   if (d) {
-    while ((dir = readdir(d)) != NULL) {
+    while ((dir = readdir(d)) != nullptr) {
       if (strncmp(dir->d_name, "video", 5)==0) {
         auto device = new vidio_v4l_raw_device();
 

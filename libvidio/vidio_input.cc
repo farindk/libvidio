@@ -34,9 +34,7 @@ std::vector<vidio_input_device*> vidio_input_device::list_input_devices(const st
   std::vector<vidio_input_device_v4l*> devs;
   devs = v4l_list_input_devices(filter);
 
-  for (auto d : devs) {
-    devices.emplace_back(d);
-  }
+  devices.insert(devices.end(), devs.begin(), devs.end());
 #endif
 
   return devices;
