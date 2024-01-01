@@ -31,10 +31,10 @@ static uint8_t vidio_version_patch = VIDIO_VERSION_PATCH;
 #define xstr(s) str(s)
 #define str(s) #s
 
-static const char *vidio_version_string = xstr(VIDIO_VERSION_MAJOR) "." xstr(VIDIO_VERSION_MINOR) "." xstr(
+static const char* vidio_version_string = xstr(VIDIO_VERSION_MAJOR) "." xstr(VIDIO_VERSION_MINOR) "." xstr(
         VIDIO_VERSION_PATCH);
 
-const char *vidio_get_version(void)
+const char* vidio_get_version(void)
 {
   return vidio_version_string;
 }
@@ -70,18 +70,18 @@ int vidio_get_version_number_patch(void)
 }
 
 
-void vidio_free_string(const char *s)
+void vidio_free_string(const char* s)
 {
   delete[] s;
 }
 
 
-const struct vidio_input_device *const *
-vidio_list_input_devices(const struct vidio_input_device_filter *filter, size_t *out_number)
+const struct vidio_input_device* const*
+vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)
 {
-  std::vector<vidio_input_device *> devices = vidio_input_device::list_input_devices(filter);
+  std::vector<vidio_input_device*> devices = vidio_input_device::list_input_devices(filter);
 
-  auto devlist = new vidio_input_device *[devices.size() + 1];
+  auto devlist = new vidio_input_device* [devices.size() + 1];
   for (size_t i = 0; i < devices.size(); i++) {
     devlist[i] = devices[i];
   }
@@ -95,7 +95,7 @@ vidio_list_input_devices(const struct vidio_input_device_filter *filter, size_t 
   return devlist;
 }
 
-void vidio_input_devices_free_list(const struct vidio_input_device *const *out_devices, int also_free_devices)
+void vidio_input_devices_free_list(const struct vidio_input_device* const* out_devices, int also_free_devices)
 {
   if (also_free_devices) {
     for (auto p = out_devices; *p; p++) {
@@ -107,19 +107,19 @@ void vidio_input_devices_free_list(const struct vidio_input_device *const *out_d
 }
 
 
-const char *make_vidio_string(const std::string &s)
+const char* make_vidio_string(const std::string& s)
 {
-  char *out = new char[s.length() + 1];
+  char* out = new char[s.length() + 1];
   strcpy(out, s.c_str());
   return out;
 }
 
-const char *vidio_input_get_display_name(const struct vidio_input *input)
+const char* vidio_input_get_display_name(const struct vidio_input* input)
 {
   return make_vidio_string(input->get_display_name());
 }
 
-enum vidio_input_source vidio_input_get_source(const struct vidio_input *input)
+enum vidio_input_source vidio_input_get_source(const struct vidio_input* input)
 {
   return input->get_source();
 }
@@ -127,16 +127,16 @@ enum vidio_input_source vidio_input_get_source(const struct vidio_input *input)
 
 double vidio_fraction_to_double(const struct vidio_fraction* fraction)
 {
-  return fraction->numerator / (double)fraction->denominator;
+  return fraction->numerator / (double) fraction->denominator;
 }
 
 
-const struct vidio_video_format *const *
-vidio_input_get_video_formats(const struct vidio_input *input, size_t *out_number)
+const struct vidio_video_format* const*
+vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number)
 {
   auto formats = input->get_video_formats();
 
-  auto outFormats = new vidio_video_format *[formats.size() + 1];
+  auto outFormats = new vidio_video_format* [formats.size() + 1];
   for (size_t i = 0; i < formats.size(); i++) {
     outFormats[i] = formats[i];
   }
@@ -149,43 +149,63 @@ vidio_input_get_video_formats(const struct vidio_input *input, size_t *out_numbe
   return outFormats;
 }
 
-void vidio_video_formats_free_list(const struct vidio_video_format *formats)
+
+const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format)
+{
+  switch (format) {
+    case vidio_pixel_format_class_unknown:
+      return "unknown";
+    case vidio_pixel_format_class_RGB:
+      return "RGB";
+    case vidio_pixel_format_class_YUV:
+      return "YUV";
+    case vidio_pixel_format_class_MJPEG:
+      return "MJPEG";
+    case vidio_pixel_format_class_H264:
+      return "H264";
+    case vidio_pixel_format_class_H265:
+      return "H265";
+  }
+
+  assert(false);
+  return "invalid";
+}
+
+
+void vidio_video_formats_free_list(const struct vidio_video_format* formats)
 {
   delete[] formats;
 }
 
 
-uint32_t vidio_video_format_get_width(const struct vidio_video_format *format)
+uint32_t vidio_video_format_get_width(const struct vidio_video_format* format)
 {
   return format->get_width();
 }
 
-uint32_t vidio_video_format_get_height(const struct vidio_video_format *format)
+uint32_t vidio_video_format_get_height(const struct vidio_video_format* format)
 {
   return format->get_height();
 }
 
-vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format *format)
+vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format)
 {
   return format->get_framerate();
 }
 
-vidio_pixel_format_class vidio_video_format_get_pixel_format_class(const struct vidio_video_format *format)
+vidio_pixel_format_class vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format)
 {
   return format->get_pixel_format_class();
 }
 
-const char *vidio_video_format_get_user_description(const struct vidio_video_format *format)
+const char* vidio_video_format_get_user_description(const struct vidio_video_format* format)
 {
   return make_vidio_string(format->get_user_description());
 }
 
-const struct vidio_video_format *const *
-vidio_input_get_video_formats(const struct vidio_input *input, size_t *out_number);
-
-void vidio_video_formats_free_list(const struct vidio_video_format *const * list)
+void vidio_video_formats_free_list(const struct vidio_video_format* const* list)
 {
-  for (auto* p = list ; *p ; p++) {
+  for (auto* p = list; *p; p++) {
     delete *p;
   }
 

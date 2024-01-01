@@ -28,17 +28,17 @@
 struct vidio_video_format
 {
 public:
-    virtual ~vidio_video_format() = default;
+  virtual ~vidio_video_format() = default;
 
-    virtual uint32_t get_width() const = 0;
+  virtual uint32_t get_width() const = 0;
 
-    virtual uint32_t get_height() const = 0;
+  virtual uint32_t get_height() const = 0;
 
-    virtual vidio_fraction get_framerate() const = 0;
+  virtual vidio_fraction get_framerate() const = 0;
 
-    virtual std::string get_user_description() const = 0;
+  virtual std::string get_user_description() const = 0;
 
-    virtual vidio_pixel_format_class get_pixel_format_class() const = 0;
+  virtual vidio_pixel_format_class get_pixel_format_class() const = 0;
 };
 
 

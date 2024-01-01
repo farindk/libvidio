@@ -75,11 +75,13 @@ struct vidio_input_device;
 struct vidio_input_device_v4l;
 struct vidio_input_device_filter;
 
-enum vidio_input_source {
+enum vidio_input_source
+{
   vidio_input_source_Video4Linux2 = 1
 };
 
-enum vidio_pixel_format_class {
+enum vidio_pixel_format_class
+{
   vidio_pixel_format_class_unknown = 0,
   vidio_pixel_format_class_RGB = 1,
   vidio_pixel_format_class_YUV = 2,
@@ -88,9 +90,13 @@ enum vidio_pixel_format_class {
   vidio_pixel_format_class_H265 = 5
 };
 
-LIBVIDIO_API const struct vidio_input_device*const * vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
+// Do not release the returned string.
+LIBVIDIO_API const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format);
 
-LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device*const * devices, int also_free_devices);
+LIBVIDIO_API const struct vidio_input_device* const*
+vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
+
+LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device* const* devices, int also_free_devices);
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 
@@ -107,9 +113,10 @@ struct vidio_video_format;
 };
 */
 
-struct vidio_fraction {
-    int numerator;
-    int denominator;
+struct vidio_fraction
+{
+  int numerator;
+  int denominator;
 };
 
 LIBVIDIO_API double vidio_fraction_to_double(const struct vidio_fraction*);
@@ -120,14 +127,16 @@ LIBVIDIO_API uint32_t vidio_video_format_get_height(const struct vidio_video_for
 
 LIBVIDIO_API vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
 
-LIBVIDIO_API vidio_pixel_format_class vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format);
+LIBVIDIO_API vidio_pixel_format_class
+vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format);
 
 LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
 
 
-LIBVIDIO_API const struct vidio_video_format*const* vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
+LIBVIDIO_API const struct vidio_video_format* const*
+vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
 
-LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format*const*);
+LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const*);
 
 //LIBVIDIO_API const enum vidio_video_format_class*const* vidio_input_get_format_classes(const struct vidio_input* input, size_t* out_number);
 

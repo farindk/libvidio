@@ -39,7 +39,8 @@ public:
 };
 
 
-struct vidio_input_device : public vidio_input {
+struct vidio_input_device : public vidio_input
+{
 public:
   static std::vector<vidio_input_device*> list_input_devices(const struct vidio_input_device_filter*);
 };

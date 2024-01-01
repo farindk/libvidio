@@ -22,7 +22,9 @@
 #include <vector>
 
 #if WITH_VIDEO4LINUX2
+
 #include "v4l/v4l.h"
+
 #endif
 
 

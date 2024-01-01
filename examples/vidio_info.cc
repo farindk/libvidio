@@ -26,23 +26,24 @@ int main(int argc, char** argv)
 {
   printf("vidio_version: %s\n", vidio_get_version());
 
-  const vidio_input_device*const* devices = vidio_list_input_devices(nullptr, nullptr);
-  for (size_t i=0;devices[i];i++) {
-    auto name = vidio_input_get_display_name((vidio_input*)devices[i]);
+  const vidio_input_device* const* devices = vidio_list_input_devices(nullptr, nullptr);
+  for (size_t i = 0; devices[i]; i++) {
+    auto name = vidio_input_get_display_name((vidio_input*) devices[i]);
     printf("> %s\n", name);
     vidio_free_string(name);
 
     size_t nFormats;
-    const struct vidio_video_format*const* formats = vidio_input_get_video_formats((vidio_input*)devices[i], &nFormats);
-    for (size_t f=0;f<nFormats;f++) {
+    const struct vidio_video_format* const* formats = vidio_input_get_video_formats((vidio_input*) devices[i],
+                                                                                    &nFormats);
+    for (size_t f = 0; f < nFormats; f++) {
       vidio_fraction framerate = vidio_video_format_get_framerate(formats[f]);
       const char* formatname = vidio_video_format_get_user_description(formats[f]);
 
-      std::cout << vidio_video_format_get_pixel_format_class(formats[f]) << " "
-      << formatname << " "
-      << vidio_video_format_get_width(formats[f]) << "x"
-      << vidio_video_format_get_height(formats[f])
-      << " @ " << vidio_fraction_to_double(&framerate) << "\n";
+      std::cout << vidio_pixel_format_class_name(vidio_video_format_get_pixel_format_class(formats[f])) << " "
+                << formatname << " "
+                << vidio_video_format_get_width(formats[f]) << "x"
+                << vidio_video_format_get_height(formats[f])
+                << " @ " << vidio_fraction_to_double(&framerate) << "\n";
 
       vidio_free_string(formatname);
     }
