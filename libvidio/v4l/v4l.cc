@@ -44,6 +44,8 @@ static vidio_pixel_format_class v4l_pixelformat_to_pixel_format_class(__u32 pixe
       return vidio_pixel_format_class_H265;
     case V4L2_PIX_FMT_YUYV:
       return vidio_pixel_format_class_YUV;
+    case V4L2_PIX_FMT_SRGGB8:
+      return vidio_pixel_format_class_RGB;
     default:
       return vidio_pixel_format_class_unknown;
   }
@@ -175,6 +177,8 @@ vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u
   for (frameinterval.index = 0;; frameinterval.index++) {
     int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMEINTERVALS, &frameinterval);
     if (ret < 0) {
+      int e = errno;
+      (void)e;
       // usually: errno == EINVAL
       break;
     }
@@ -221,6 +225,12 @@ std::vector<vidio_video_format_v4l*> vidio_v4l_raw_device::get_video_formats() c
         }
 
         auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, framerate);
+        formats.push_back(format);
+      }
+
+      // There seem to be some devices that do not report a framerate.
+      if (r.m_frameintervals.empty()) {
+        auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, {0,1});
         formats.push_back(format);
       }
     }
