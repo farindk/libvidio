@@ -90,23 +90,44 @@ enum vidio_pixel_format_class {
 
 LIBVIDIO_API const struct vidio_input_device*const * vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
 
-LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device*const * out_devices, int also_free_devices);
+LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device*const * devices, int also_free_devices);
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 
 LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_input* input);
 
 
-struct vidio_video_format {
+struct vidio_video_format;
+
+/*{
   uint32_t width, height;
   uint32_t framerate_num, framerate_den;
   enum vidio_pixel_format_class pixel_format_class;
   uint32_t pixel_format_fourcc;
 };
+*/
 
-LIBVIDIO_API const struct vidio_video_format* vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
+struct vidio_fraction {
+    int numerator;
+    int denominator;
+};
 
-LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format*);
+LIBVIDIO_API double vidio_fraction_to_double(const struct vidio_fraction*);
+
+LIBVIDIO_API uint32_t vidio_video_format_get_width(const struct vidio_video_format* format);
+
+LIBVIDIO_API uint32_t vidio_video_format_get_height(const struct vidio_video_format* format);
+
+LIBVIDIO_API vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
+
+LIBVIDIO_API vidio_pixel_format_class vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format);
+
+LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
+
+
+LIBVIDIO_API const struct vidio_video_format*const* vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
+
+LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format*const*);
 
 //LIBVIDIO_API const enum vidio_video_format_class*const* vidio_input_get_format_classes(const struct vidio_input* input, size_t* out_number);
 

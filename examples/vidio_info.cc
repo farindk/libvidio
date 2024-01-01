@@ -33,10 +33,18 @@ int main(int argc, char** argv)
     vidio_free_string(name);
 
     size_t nFormats;
-    const struct vidio_video_format* formats = vidio_input_get_video_formats((vidio_input*)devices[i], &nFormats);
+    const struct vidio_video_format*const* formats = vidio_input_get_video_formats((vidio_input*)devices[i], &nFormats);
     for (size_t f=0;f<nFormats;f++) {
-      std::cout << formats[f].pixel_format_class << " " << formats[f].width << "x" << formats[f].height
-      << " @ " << formats[f].framerate_num << "/" << formats[f].framerate_den << "\n";
+      vidio_fraction framerate = vidio_video_format_get_framerate(formats[f]);
+      const char* formatname = vidio_video_format_get_user_description(formats[f]);
+
+      std::cout << vidio_video_format_get_pixel_format_class(formats[f]) << " "
+      << formatname << " "
+      << vidio_video_format_get_width(formats[f]) << "x"
+      << vidio_video_format_get_height(formats[f])
+      << " @ " << vidio_fraction_to_double(&framerate) << "\n";
+
+      vidio_free_string(formatname);
     }
     vidio_video_formats_free_list(formats);
   }

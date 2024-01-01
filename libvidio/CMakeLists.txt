@@ -7,7 +7,7 @@ set(libvidio_sources
         vidio.cc
         vidio_input.cc
         vidio_input.h
-        ${libvidio_headers})
+        ${libvidio_headers} vidio_video_format.cpp vidio_video_format.h)
 
 add_library(vidio ${libvidio_sources})
 
