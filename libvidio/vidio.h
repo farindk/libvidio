@@ -73,6 +73,9 @@ struct vidio_fraction
 LIBVIDIO_API double vidio_fraction_to_double(const struct vidio_fraction*);
 
 
+struct vidio_error;
+
+
 // === Video Format ===
 
 enum vidio_pixel_format_class
@@ -138,6 +141,17 @@ LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device*
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 
 LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_input* input);
+
+struct vidio_output_format;
+
+LIBVIDIO_API vidio_error* vidio_input_configure_capture(struct vidio_input* input,
+                                                        const vidio_video_format* requested_format,
+                                                        const vidio_output_format*,
+                                                        vidio_video_format** out_actual_format);
+
+struct vidio_frame;
+
+LIBVIDIO_API vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void (*)(const vidio_frame*));
 
 }
 

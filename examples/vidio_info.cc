@@ -22,6 +22,11 @@
 #include <cstdio>
 #include <iostream>
 
+void capture_callback(const vidio_frame* frame) {
+  std::cout << "callback\n";
+}
+
+
 int main(int argc, char** argv)
 {
   printf("vidio_version: %s\n", vidio_get_version());
@@ -47,8 +52,17 @@ int main(int argc, char** argv)
 
       vidio_free_string(formatname);
     }
+
+    vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
+
+    auto* err = vidio_input_configure_capture((vidio_input*)devices[i], formats[25], nullptr, &actual_format);
+    (void)err; // TODO
+
     vidio_video_formats_free_list(formats);
+    vidio_input_start_capture_blocking((vidio_input*)devices[i], capture_callback);
   }
+
+
 
   vidio_input_devices_free_list(devices, true);
 

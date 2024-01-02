@@ -28,7 +28,8 @@
 #include <fcntl.h>
 #include <unistd.h>
 #include <cassert>
-
+#include <algorithm>
+#include <sys/mman.h>
 
 static vidio_pixel_format_class v4l_pixelformat_to_pixel_format_class(__u32 pixelformat)
 {
@@ -67,7 +68,7 @@ vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
 
 bool vidio_v4l_raw_device::query_device(const char* filename)
 {
-  m_fd = open(filename, 0);
+  m_fd = ::open(filename, O_RDWR);
   if (m_fd == -1) {
     return false;
   }
@@ -76,7 +77,7 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
 
   ret = ioctl(m_fd, VIDIOC_QUERYCAP, &m_caps);
   if (ret == -1) {
-    close(m_fd);
+    ::close(m_fd);
     m_fd = -1;
     return false;
   }
@@ -84,6 +85,20 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
   m_device_file = filename;
 
   if (has_video_capture_capability()) {
+
+    // --- check whether driver supports time/frame
+
+    v4l2_streamparm streamparm{};
+    streamparm.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    ret = ioctl(m_fd, VIDIOC_G_PARM, &streamparm);
+    if (ret == -1) {
+      ::close(m_fd);
+      m_fd = -1;
+      return false;
+    }
+    m_supports_framerate = !!(streamparm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME);
+
+    // --- list supported formats
 
     auto formats = list_v4l_formats(V4L2_BUF_TYPE_VIDEO_CAPTURE);
     for (auto f: formats) {
@@ -95,14 +110,16 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
         framesize_v4l fsize;
         fsize.m_framesize = s;
 
-        std::vector<v4l2_frmivalenum> frmintervals;
-        if (s.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-          frmintervals = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
-        } else {
-          frmintervals = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
-        }
+        if (m_supports_framerate) {
+          std::vector<v4l2_frmivalenum> frmintervals;
+          if (s.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
+            frmintervals = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
+          } else {
+            frmintervals = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
+          }
 
-        fsize.m_frameintervals = frmintervals;
+          fsize.m_frameintervals = frmintervals;
+        }
 
         format.m_framesizes.emplace_back(fsize);
       }
@@ -111,7 +128,7 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
     }
   }
 
-  close(m_fd);
+  ::close(m_fd);
   m_fd = -1;
 
   return true;
@@ -178,7 +195,7 @@ vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u
     int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMEINTERVALS, &frameinterval);
     if (ret < 0) {
       int e = errno;
-      (void)e;
+      (void) e;
       // usually: errno == EINVAL
       break;
     }
@@ -230,13 +247,223 @@ std::vector<vidio_video_format_v4l*> vidio_v4l_raw_device::get_video_formats() c
 
       // There seem to be some devices that do not report a framerate.
       if (r.m_frameintervals.empty()) {
-        auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, {0,1});
+        auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, {0, 1});
         formats.push_back(format);
       }
     }
   }
 
   return formats;
+}
+
+
+bool vidio_v4l_raw_device::supports_pixel_format(__u32 pixelformat) const
+{
+  return std::any_of(m_formats.begin(), m_formats.end(),
+                     [pixelformat](const auto& f) {
+                       return f.m_fmtdesc.pixelformat == pixelformat;
+                     });
+}
+
+vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v4l* format_v4l,
+                                                      vidio_video_format_v4l** out_format)
+{
+  if (!is_open()) {
+    auto* err = open();
+    if (err) {
+      return err;
+    }
+  }
+
+  assert(m_fd >= 0);
+
+  int ret;
+
+  v4l2_format fmt{};
+  fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  fmt.fmt.pix.width = format_v4l->get_width();
+  fmt.fmt.pix.height = format_v4l->get_height();
+  fmt.fmt.pix.pixelformat = format_v4l->get_pixel_format();
+  fmt.fmt.pix.field = V4L2_FIELD_ANY;
+
+  ret = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
+  if (ret == -1) {
+    return 0; // TODO
+  }
+
+  // --- set framerate
+
+  if (m_supports_framerate) {
+    v4l2_streamparm param{};
+    param.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    param.parm.capture.timeperframe.numerator = format_v4l->get_framerate().denominator;
+    param.parm.capture.timeperframe.denominator = format_v4l->get_framerate().numerator;
+
+    ret = ioctl(m_fd, VIDIOC_S_PARM, &param);
+    if (ret == -1) {
+      return 0; // TODO
+    }
+
+    printf("set framerate: %d/%d\n",
+           param.parm.capture.timeperframe.denominator,
+           param.parm.capture.timeperframe.numerator);
+  }
+
+  return nullptr;
+}
+
+
+vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(const vidio_frame*))
+{
+  assert(m_fd != -1);
+
+  // --- request buffers
+
+  v4l2_requestbuffers req{};
+
+  req.count = 4;
+  req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  req.memory = V4L2_MEMORY_MMAP;
+
+  int ret;
+
+  if (-1 == (ret = ioctl(m_fd, VIDIOC_REQBUFS, &req))) {
+    if (EINVAL == errno) {
+      fprintf(stderr, "%s does not support "
+                      "memory mappingn", "QWE");
+      exit(EXIT_FAILURE);
+    } else {
+//      errno_exit("VIDIOC_REQBUFS");
+    }
+  }
+
+  if (req.count < 2) {
+    fprintf(stderr, "Insufficient buffer memory on %s\\n",
+            "QWE"); //          dev_name);
+    exit(EXIT_FAILURE);
+  }
+
+  m_buffers.resize(req.count);
+
+  for (__u32 i = 0 /**/; i < req.count; i++) {
+    v4l2_buffer buf{};
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+    buf.index = i;
+
+    if (-1 == ioctl(m_fd, VIDIOC_QUERYBUF, &buf)) {
+      return 0; // TODO
+      //  errno_exit("VIDIOC_QUERYBUF");
+    }
+
+    m_buffers[i].length = buf.length;
+    m_buffers[i].start =
+            mmap(nullptr /* start anywhere */,
+                 buf.length,
+                 PROT_READ | PROT_WRITE /* required */,
+                 MAP_SHARED /* recommended */,
+                 m_fd, buf.m.offset);
+
+    if (MAP_FAILED == m_buffers[i].start) {
+      int e = errno;
+      (void) e;
+      return 0; // TODO
+      //errno_exit("mmap");
+    }
+  }
+
+  // --- queue all buffers
+
+  for (size_t i = 0; i < m_buffers.size(); i++) {
+    v4l2_buffer buf{};
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+    buf.index = (__u32) i;
+
+    if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
+      return 0; // TODO
+    }
+  }
+
+  // --- switch on streaming
+
+  v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (-1 == ioctl(m_fd, VIDIOC_STREAMON, &type)) {
+    return 0; // TODO
+  }
+
+  FILE* fh = fopen("/home/farindk/out.bin", "wb");
+
+  int cnt = 0;
+  for (; cnt < 150; cnt++) {
+    fd_set fds;
+    FD_ZERO(&fds);
+    FD_SET(m_fd, &fds);
+
+    /* Timeout. */
+    struct timeval tv{};
+    tv.tv_sec = 2;
+    tv.tv_usec = 0;
+
+    int r = select(m_fd + 1, &fds, nullptr, nullptr, &tv);
+    if (r == -1) {
+      if (errno == EINTR)
+        continue;
+      else {
+        return 0; // TODO
+      }
+    }
+
+    // get frame
+
+    v4l2_buffer buf{};
+
+    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    buf.memory = V4L2_MEMORY_MMAP;
+
+    if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) {
+      return 0; // TODO
+    }
+
+    printf("%d : got %p %d at %d.%d:%d %ld - #%d\n", cnt, m_buffers[buf.index].start, buf.bytesused,
+           buf.timecode.minutes, buf.timecode.seconds, buf.timecode.frames,
+           buf.timestamp.tv_usec, buf.sequence);
+    fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
+
+    // --- re-queue buffer
+
+    if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
+      return 0; // TODO
+    }
+  }
+
+  fclose(fh);
+
+  return nullptr;
+}
+
+
+vidio_error* vidio_v4l_raw_device::open()
+{
+  if (m_fd == -1) {
+    m_fd = ::open(m_device_file.c_str(), O_RDWR);
+    if (m_fd == -1) {
+      return 0; // TODO
+    }
+  }
+
+  return nullptr;
+}
+
+
+void vidio_v4l_raw_device::close()
+{
+  if (m_fd != -1) {
+    ::close(m_fd);
+    m_fd = -1;
+  }
 }
 
 
@@ -317,4 +544,53 @@ std::vector<vidio_video_format*> vidio_input_device_v4l::get_video_formats() con
   }
 
   return formats;
+}
+
+
+vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format* requested_format,
+                                                        vidio_video_format** out_actual_format)
+{
+  const auto* format_v4l = dynamic_cast<const vidio_video_format_v4l*>(requested_format);
+  if (!format_v4l) {
+    return 0; // TOOD
+  }
+
+  vidio_v4l_raw_device* capturedev = nullptr;
+  __u32 pixelformat = format_v4l->get_pixel_format();
+  for (const auto& dev: m_v4l_capture_devices) {
+    if (dev->supports_pixel_format(pixelformat)) {
+      capturedev = dev;
+      break;
+    }
+  }
+
+  m_active_device = capturedev;
+
+  if (!capturedev) {
+    return 0; // TODO
+  }
+
+  vidio_video_format_v4l* actual_format = nullptr;
+  auto* err = capturedev->set_capture_format(format_v4l, &actual_format);
+  if (err) {
+    return err;
+  }
+
+  if (out_actual_format) {
+    *out_actual_format = actual_format;
+  }
+
+  return nullptr;
+}
+
+
+vidio_error* vidio_input_device_v4l::start_capturing_blocking(void (* callback)(const vidio_frame*))
+{
+  if (!m_active_device) {
+    return 0; // TODO
+  }
+
+  m_active_device->start_capturing_blocking(callback);
+
+  return nullptr;
 }

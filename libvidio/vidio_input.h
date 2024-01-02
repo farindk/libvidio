@@ -36,6 +36,11 @@ public:
   virtual std::string get_display_name() const = 0;
 
   virtual std::vector<vidio_video_format*> get_video_formats() const = 0;
+
+  virtual vidio_error* set_capture_format(const vidio_video_format* requested_format,
+                                          vidio_video_format** out_actual_format) = 0;
+
+  virtual  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*)) = 0;
 };
 
 

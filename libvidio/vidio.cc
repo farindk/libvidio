@@ -211,3 +211,19 @@ void vidio_video_formats_free_list(const struct vidio_video_format* const* list)
 
   delete[] list;
 }
+
+
+vidio_error* vidio_input_configure_capture(struct vidio_input* input,
+                                           const vidio_video_format* requested_format,
+                                           const vidio_output_format*,
+                                           vidio_video_format** out_actual_format)
+{
+  auto err = input->set_capture_format(requested_format, out_actual_format);
+  return err;
+}
+
+
+vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void (*callback)(const vidio_frame*))
+{
+  return input->start_capturing_blocking(callback);
+}

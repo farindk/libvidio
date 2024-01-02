@@ -47,6 +47,8 @@ public:
 
   vidio_pixel_format_class get_pixel_format_class() const override { return m_format_class; }
 
+  __u32 get_pixel_format() const { return m_format.pixelformat; }
+
 private:
   v4l2_fmtdesc m_format;
   uint32_t m_width, m_height;
@@ -71,10 +73,24 @@ public:
 
   std::vector<vidio_video_format_v4l*> get_video_formats() const;
 
+  bool supports_pixel_format(__u32 pixelformat) const;
+
+  vidio_error* set_capture_format(const vidio_video_format_v4l* requested_format,
+                                  vidio_video_format_v4l** out_actual_format);
+
+  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*));
+
+  vidio_error* open();
+
+  void close();
+
+  bool is_open() const { return m_fd != -1; }
+
 private:
   std::string m_device_file;
   int m_fd = -1; // < 0 if closed
 
+  bool m_supports_framerate = false;
   struct v4l2_capability m_caps;
 
   struct framesize_v4l
@@ -97,6 +113,14 @@ private:
   std::vector<v4l2_frmsizeenum> list_v4l_framesizes(__u32 pixel_type) const;
 
   std::vector<v4l2_frmivalenum> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
+
+
+  struct buffer {
+    void   *start;
+    size_t  length;
+  };
+
+  std::vector<buffer> m_buffers;
 };
 
 
@@ -118,8 +142,15 @@ public:
 
   std::vector<vidio_video_format*> get_video_formats() const override;
 
+  vidio_error* set_capture_format(const vidio_video_format* requested_format,
+                                  vidio_video_format** out_actual_format) override;
+
+  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*)) override;
+
 private:
   std::vector<vidio_v4l_raw_device*> m_v4l_capture_devices;
+
+  vidio_v4l_raw_device* m_active_device = nullptr;
 };
 
 
