@@ -43,6 +43,22 @@ void capture_callback(const vidio_frame* frame) {
 
   std::cout << vidio_frame_get_width(frame) << " x " << vidio_frame_get_height(frame) << "\n";
 
+  vidio_frame* rgbFrame = vidio_frame_convert(frame, vidio_pixel_format_RGB8);
+
+  static int cnt=1;
+  char buf[100];
+  sprintf(buf, "/home/farindk/out%04d.ppm", cnt++);
+  FILE* fh = fopen(buf, "wb");
+  fprintf(fh, "P6\n%d %d\n255\n", vidio_frame_get_width(rgbFrame), vidio_frame_get_height(rgbFrame));
+  const uint8_t* data;
+  int stride;
+  data = vidio_frame_get_color_plane_readonly(rgbFrame, vidio_color_channel_interleaved, &stride);
+  for (int y=0;y<vidio_frame_get_height(rgbFrame);y++) {
+    fwrite(data + y*stride, 1, stride, fh);
+  }
+  fclose(fh);
+
+  vidio_frame_release(rgbFrame);
   vidio_frame_release(frame);
 }
 
@@ -75,7 +91,7 @@ int main(int argc, char** argv)
 
     vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
 
-    auto* err = vidio_input_configure_capture((vidio_input*)devices[i], formats[25], nullptr, &actual_format);
+    auto* err = vidio_input_configure_capture((vidio_input*)devices[i], formats[0], nullptr, &actual_format);
     (void)err; // TODO
 
     vidio_video_formats_free_list(formats);

@@ -22,6 +22,7 @@
 #include "libvidio/vidio_frame.h"
 #include "libvidio/vidio_input.h"
 #include "libvidio/vidio_video_format.h"
+#include "libvidio/colorconversion/converter.h"
 #include <cassert>
 #include <cstring>
 
@@ -263,4 +264,10 @@ vidio_error* vidio_input_configure_capture(struct vidio_input* input,
 vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void (*callback)(const vidio_frame*))
 {
   return input->start_capturing_blocking(callback);
+}
+
+
+vidio_frame* vidio_frame_convert(const vidio_frame* f, vidio_pixel_format format)
+{
+  return convert_frame(f, format);
 }

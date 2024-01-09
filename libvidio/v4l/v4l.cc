@@ -466,12 +466,12 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
       case V4L2_PIX_FMT_YUYV:
         frame->set_format(vidio_pixel_format_YUV422_YUYV, m_capture_width, m_capture_height);
         frame->add_raw_plane(vidio_color_channel_interleaved, 16);
-        frame->copy_raw_plane(vidio_color_channel_interleaved, buffer.start, buffer.length);
+        frame->copy_raw_plane(vidio_color_channel_interleaved, buffer.start, buf.bytesused);
         break;
       case V4L2_PIX_FMT_MJPEG:
         frame->set_format(vidio_pixel_format_YUV422_YUYV, m_capture_width, m_capture_height);
         frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
-                                    (const uint8_t*)buffer.start, buffer.length,
+                                    (const uint8_t*)buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
     }

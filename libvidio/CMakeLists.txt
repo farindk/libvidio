@@ -11,6 +11,8 @@ set(libvidio_sources
         vidio_input.h
         vidio_video_format.cc
         vidio_video_format.h
+        colorconversion/converter.h
+        colorconversion/converter.cc
         ${libvidio_headers})
 
 add_library(vidio ${libvidio_sources})

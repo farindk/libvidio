@@ -130,6 +130,8 @@ LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, vidio_color_chan
 
 LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame*, vidio_color_channel, int* stride);
 
+LIBVIDIO_API vidio_frame* vidio_frame_convert(const vidio_frame*, vidio_pixel_format);
+
 
 // === Video Format ===
 

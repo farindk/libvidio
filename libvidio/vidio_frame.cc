@@ -117,6 +117,7 @@ void vidio_frame::add_raw_plane(vidio_color_channel channel, int w, int h, int b
   p.h = h;
   p.stride = memWidth;
   p.format = vidio_channel_format_raw;
+  p.bpp = bpp;
 
   p.mem = new uint8_t[memWidth * h];
   p.memory_owned = true;
@@ -195,6 +196,8 @@ void vidio_frame::copy_raw_plane(vidio_color_channel channel, const void* mem, s
   int bytes_per_pixel = (plane.bpp + 7) / 8;
 
   for (int y = 0; y < plane.h; y++) {
-    memcpy(plane.mem + y * plane.stride, ((uint8_t*) mem) + y * plane.w * bytes_per_pixel, plane.w * bytes_per_pixel);
+    memcpy(plane.mem + y * plane.stride,
+           ((uint8_t*) mem) + y * plane.w * bytes_per_pixel,
+           plane.w * bytes_per_pixel);
   }
 }
