@@ -19,6 +19,7 @@
  */
 
 #include "libvidio/vidio.h"
+#include "libvidio/vidio_frame.h"
 #include "libvidio/vidio_input.h"
 #include "libvidio/vidio_video_format.h"
 #include <cassert>
@@ -128,6 +129,42 @@ enum vidio_input_source vidio_input_get_source(const struct vidio_input* input)
 double vidio_fraction_to_double(const struct vidio_fraction* fraction)
 {
   return fraction->numerator / (double) fraction->denominator;
+}
+
+
+void vidio_frame_release(const vidio_frame* f)
+{
+  delete f;
+}
+
+int vidio_frame_get_width(const vidio_frame* f)
+{
+  return f->get_width();
+}
+
+int vidio_frame_get_height(const vidio_frame* f)
+{
+  return f->get_height();
+}
+
+enum vidio_pixel_format vidio_frame_get_pixel_format(const vidio_frame* f)
+{
+  return f->get_pixel_format();
+}
+
+int vidio_frame_has_color_plane(const vidio_frame* f, vidio_color_channel c)
+{
+  return f->has_plane(c);
+}
+
+uint8_t* vidio_frame_get_color_plane(vidio_frame* f, vidio_color_channel c, int* stride)
+{
+  return f->get_plane(c, stride);
+}
+
+const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame* f, vidio_color_channel c, int* stride)
+{
+  return f->get_plane(c, stride);
 }
 
 

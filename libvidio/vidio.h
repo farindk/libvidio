@@ -76,6 +76,61 @@ LIBVIDIO_API double vidio_fraction_to_double(const struct vidio_fraction*);
 struct vidio_error;
 
 
+// === Video Frame ===
+
+enum vidio_pixel_format
+{
+  vidio_pixel_format_undefined = 0,
+  vidio_pixel_format_RGB8 = 1,
+  vidio_pixel_format_RGB8_planar = 2,
+  vidio_pixel_format_YUV420_planar = 100,
+  vidio_pixel_format_YUV422_YUYV = 3,
+  vidio_pixel_format_MJPEG = 500,
+  vidio_pixel_format_H264 = 501,
+  vidio_pixel_format_H265 = 502
+};
+
+enum vidio_color_channel
+{
+  vidio_color_channel_undefined = 0,
+  vidio_color_channel_R = 1,
+  vidio_color_channel_G = 2,
+  vidio_color_channel_B = 3,
+  vidio_color_channel_Y = 4,
+  vidio_color_channel_U = 5,
+  vidio_color_channel_V = 6,
+  vidio_color_channel_alpha = 7,
+  vidio_color_channel_depth = 8,
+  vidio_color_channel_interleaved = 100,
+  vidio_color_channel_compressed = 101
+};
+
+enum vidio_channel_format
+{
+  vidio_channel_format_undefined = 0,
+  vidio_channel_format_raw = 1,
+  vidio_channel_format_compressed_MJPEG = 500,
+  vidio_channel_format_compressed_H264 = 501,
+  vidio_channel_format_compressed_H265 = 502
+};
+
+struct vidio_frame;
+
+LIBVIDIO_API void vidio_frame_release(const vidio_frame*);
+
+LIBVIDIO_API int vidio_frame_get_width(const vidio_frame*);
+
+LIBVIDIO_API int vidio_frame_get_height(const vidio_frame*);
+
+LIBVIDIO_API enum vidio_pixel_format vidio_frame_get_pixel_format(const vidio_frame*);
+
+LIBVIDIO_API int vidio_frame_has_color_plane(const vidio_frame*, vidio_color_channel);
+
+LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, vidio_color_channel, int* stride);
+
+LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame*, vidio_color_channel, int* stride);
+
+
 // === Video Format ===
 
 enum vidio_pixel_format_class

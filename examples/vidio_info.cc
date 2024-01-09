@@ -24,6 +24,26 @@
 
 void capture_callback(const vidio_frame* frame) {
   std::cout << "callback\n";
+
+  std::cout << "format: ";
+  switch (vidio_frame_get_pixel_format(frame)) {
+    case vidio_pixel_format_YUV422_YUYV:
+      std::cout << "YUYV\n";
+      break;
+    case vidio_pixel_format_MJPEG:
+      std::cout << "MJPEG\n";
+      break;
+    case vidio_pixel_format_H264:
+      std::cout << "H264\n";
+      break;
+    default:
+      std::cout << "unknown\n";
+      break;
+  }
+
+  std::cout << vidio_frame_get_width(frame) << " x " << vidio_frame_get_height(frame) << "\n";
+
+  vidio_frame_release(frame);
 }
 
 

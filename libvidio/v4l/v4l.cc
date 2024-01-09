@@ -19,6 +19,7 @@
  */
 
 #include "libvidio/v4l/v4l.h"
+#include "libvidio/vidio_frame.h"
 #include <dirent.h>
 #include <cstdio>
 #include <cstring>
@@ -265,6 +266,22 @@ bool vidio_v4l_raw_device::supports_pixel_format(__u32 pixelformat) const
                      });
 }
 
+
+static vidio_pixel_format v4l2_pixelformat_to_vidio_format(__u32 v4l_format)
+{
+  switch (v4l_format) {
+    case V4L2_PIX_FMT_YUYV:
+      return vidio_pixel_format_YUV422_YUYV;
+    case V4L2_PIX_FMT_MJPEG:
+      return vidio_pixel_format_MJPEG;
+    case V4L2_PIX_FMT_H264:
+      return vidio_pixel_format_H264;
+
+    default:
+      return vidio_pixel_format_undefined;
+  }
+}
+
 vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v4l* format_v4l,
                                                       vidio_video_format_v4l** out_format)
 {
@@ -291,6 +308,14 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
     return 0; // TODO
   }
 
+
+  // TODO: can we assume that we got the requested format, or do we have to check what we really got?
+  m_capture_width = format_v4l->get_width();
+  m_capture_height = format_v4l->get_height();
+  m_capture_pixel_format = format_v4l->get_pixel_format();
+  m_capture_vidio_pixel_format = v4l2_pixelformat_to_vidio_format(m_capture_pixel_format);
+
+
   // --- set framerate
 
   if (m_supports_framerate) {
@@ -316,6 +341,8 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(const vidio_frame*))
 {
   assert(m_fd != -1);
+  assert(callback != nullptr);
+
 
   // --- request buffers
 
@@ -431,6 +458,25 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
            buf.timecode.minutes, buf.timecode.seconds, buf.timecode.frames,
            buf.timestamp.tv_usec, buf.sequence);
     fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
+
+    const buffer& buffer = m_buffers[buf.index];
+
+    auto* frame = new vidio_frame();
+    switch (m_capture_pixel_format) {
+      case V4L2_PIX_FMT_YUYV:
+        frame->set_format(vidio_pixel_format_YUV422_YUYV, m_capture_width, m_capture_height);
+        frame->add_raw_plane(vidio_color_channel_interleaved, 16);
+        frame->copy_raw_plane(vidio_color_channel_interleaved, buffer.start, buffer.length);
+        break;
+      case V4L2_PIX_FMT_MJPEG:
+        frame->set_format(vidio_pixel_format_YUV422_YUYV, m_capture_width, m_capture_height);
+        frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
+                                    (const uint8_t*)buffer.start, buffer.length,
+                                    m_capture_width, m_capture_height);
+        break;
+    }
+
+    callback(frame);
 
     // --- re-queue buffer
 

@@ -115,6 +115,11 @@ private:
   std::vector<v4l2_frmivalenum> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
 
 
+  __u32 m_capture_pixel_format;
+  vidio_pixel_format m_capture_vidio_pixel_format;
+  uint32_t m_capture_width;
+  uint32_t m_capture_height;
+
   struct buffer {
     void   *start;
     size_t  length;
