@@ -22,6 +22,7 @@
 #include "libvidio/vidio_frame.h"
 #include "libvidio/vidio_input.h"
 #include "libvidio/vidio_video_format.h"
+#include "libvidio/vidio_format_converter.h"
 #include "libvidio/colorconversion/converter.h"
 #include <cassert>
 #include <cstring>
@@ -210,6 +211,12 @@ const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format)
 }
 
 
+vidio_pixel_format vidio_video_format_get_pixel_format(const struct vidio_video_format* format)
+{
+  return format->get_pixel_format();
+}
+
+
 void vidio_video_formats_free_list(const struct vidio_video_format* formats)
 {
   delete[] formats;
@@ -270,4 +277,31 @@ vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void 
 vidio_frame* vidio_frame_convert(const vidio_frame* f, vidio_pixel_format format)
 {
   return convert_frame(f, format);
+}
+
+
+vidio_format_converter* vidio_create_converter(vidio_pixel_format from, vidio_pixel_format to)
+{
+  return vidio_format_converter::create(from, to);
+}
+
+void vidio_format_converter_release(vidio_format_converter* converter)
+{
+  delete converter;
+}
+
+vidio_frame* vidio_format_converter_convert_uncompressed(vidio_format_converter* converter, const vidio_frame* f)
+{
+  converter->push(f);
+  return converter->pull();
+}
+
+void vidio_format_converter_push_compressed(vidio_format_converter* converter, const vidio_frame* f)
+{
+  converter->push(f);
+}
+
+vidio_frame* vidio_format_converter_pull_decompressed(vidio_format_converter* converter)
+{
+  return converter->pull();
 }

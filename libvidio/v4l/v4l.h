@@ -47,7 +47,9 @@ public:
 
   vidio_pixel_format_class get_pixel_format_class() const override { return m_format_class; }
 
-  __u32 get_pixel_format() const { return m_format.pixelformat; }
+  __u32 get_v4l2_pixel_format() const { return m_format.pixelformat; }
+
+  vidio_pixel_format get_pixel_format() const override;
 
 private:
   v4l2_fmtdesc m_format;

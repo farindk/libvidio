@@ -130,7 +130,23 @@ LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, vidio_color_chan
 
 LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame*, vidio_color_channel, int* stride);
 
+
+// === Format Conversion ===
+
 LIBVIDIO_API vidio_frame* vidio_frame_convert(const vidio_frame*, vidio_pixel_format);
+
+
+struct vidio_format_converter;
+
+LIBVIDIO_API vidio_format_converter* vidio_create_converter(vidio_pixel_format from, vidio_pixel_format to);
+
+LIBVIDIO_API void vidio_format_converter_release(vidio_format_converter*);
+
+LIBVIDIO_API vidio_frame* vidio_format_converter_convert_uncompressed(vidio_format_converter*, const vidio_frame*);
+
+LIBVIDIO_API void vidio_format_converter_push_compressed(vidio_format_converter*, const vidio_frame*);
+
+LIBVIDIO_API vidio_frame* vidio_format_converter_pull_decompressed(vidio_format_converter*);
 
 
 // === Video Format ===
@@ -148,6 +164,7 @@ enum vidio_pixel_format_class
 // Do not release the returned string.
 LIBVIDIO_API const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format);
 
+LIBVIDIO_API vidio_pixel_format vidio_video_format_get_pixel_format(const struct vidio_video_format* format);
 
 struct vidio_video_format;
 

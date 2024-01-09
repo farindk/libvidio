@@ -39,6 +39,8 @@ public:
   virtual std::string get_user_description() const = 0;
 
   virtual vidio_pixel_format_class get_pixel_format_class() const = 0;
+
+  virtual vidio_pixel_format get_pixel_format() const = 0;
 };
 
 

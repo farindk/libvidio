@@ -54,6 +54,28 @@ static vidio_pixel_format_class v4l_pixelformat_to_pixel_format_class(__u32 pixe
 }
 
 
+static vidio_pixel_format v4l_pixelformat_to_pixel_format(__u32 pixelformat)
+{
+  switch (pixelformat) {
+    case V4L2_PIX_FMT_MJPEG:
+      return vidio_pixel_format_MJPEG;
+    case V4L2_PIX_FMT_H264:
+    case V4L2_PIX_FMT_H264_MVC:
+    case V4L2_PIX_FMT_H264_NO_SC:
+    case V4L2_PIX_FMT_H264_SLICE:
+      return vidio_pixel_format_H264;
+    case V4L2_PIX_FMT_HEVC:
+      return vidio_pixel_format_H265;
+    case V4L2_PIX_FMT_YUYV:
+      return vidio_pixel_format_YUV422_YUYV;
+    case V4L2_PIX_FMT_SRGGB8:
+      return vidio_pixel_format_RGB8;
+    default:
+      return vidio_pixel_format_undefined;
+  }
+}
+
+
 vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
                                                uint32_t width, uint32_t height,
                                                vidio_fraction framerate)
@@ -64,6 +86,12 @@ vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
   m_framerate = framerate;
 
   m_format_class = v4l_pixelformat_to_pixel_format_class(fmt.pixelformat);
+}
+
+
+vidio_pixel_format vidio_video_format_v4l::get_pixel_format() const
+{
+  return v4l_pixelformat_to_pixel_format(m_format.pixelformat);;
 }
 
 
@@ -300,7 +328,7 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
   fmt.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   fmt.fmt.pix.width = format_v4l->get_width();
   fmt.fmt.pix.height = format_v4l->get_height();
-  fmt.fmt.pix.pixelformat = format_v4l->get_pixel_format();
+  fmt.fmt.pix.pixelformat = format_v4l->get_v4l2_pixel_format();
   fmt.fmt.pix.field = V4L2_FIELD_ANY;
 
   ret = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
@@ -312,7 +340,7 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
   // TODO: can we assume that we got the requested format, or do we have to check what we really got?
   m_capture_width = format_v4l->get_width();
   m_capture_height = format_v4l->get_height();
-  m_capture_pixel_format = format_v4l->get_pixel_format();
+  m_capture_pixel_format = format_v4l->get_v4l2_pixel_format();
   m_capture_vidio_pixel_format = v4l2_pixelformat_to_vidio_format(m_capture_pixel_format);
 
 
@@ -602,7 +630,7 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
   }
 
   vidio_v4l_raw_device* capturedev = nullptr;
-  __u32 pixelformat = format_v4l->get_pixel_format();
+  __u32 pixelformat = format_v4l->get_v4l2_pixel_format();
   for (const auto& dev: m_v4l_capture_devices) {
     if (dev->supports_pixel_format(pixelformat)) {
       capturedev = dev;

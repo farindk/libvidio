@@ -11,6 +11,8 @@ set(libvidio_sources
         vidio_input.h
         vidio_video_format.cc
         vidio_video_format.h
+        vidio_format_converter.h
+        vidio_format_converter.cc
         colorconversion/converter.h
         colorconversion/converter.cc
         colorconversion/yuv2rgb.h
