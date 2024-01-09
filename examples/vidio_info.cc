@@ -22,7 +22,8 @@
 #include <cstdio>
 #include <iostream>
 
-void capture_callback(const vidio_frame* frame) {
+void capture_callback(const vidio_frame* frame)
+{
   std::cout << "callback\n";
 
   std::cout << "format: ";
@@ -45,7 +46,8 @@ void capture_callback(const vidio_frame* frame) {
 
   vidio_frame* rgbFrame = vidio_frame_convert(frame, vidio_pixel_format_RGB8);
 
-  static int cnt=1;
+#if 0
+  static int cnt = 1;
   char buf[100];
   sprintf(buf, "/home/farindk/out%04d.ppm", cnt++);
   FILE* fh = fopen(buf, "wb");
@@ -53,10 +55,11 @@ void capture_callback(const vidio_frame* frame) {
   const uint8_t* data;
   int stride;
   data = vidio_frame_get_color_plane_readonly(rgbFrame, vidio_color_channel_interleaved, &stride);
-  for (int y=0;y<vidio_frame_get_height(rgbFrame);y++) {
-    fwrite(data + y*stride, 1, stride, fh);
+  for (int y = 0; y < vidio_frame_get_height(rgbFrame); y++) {
+    fwrite(data + y * stride, 1, stride, fh);
   }
   fclose(fh);
+#endif
 
   vidio_frame_release(rgbFrame);
   vidio_frame_release(frame);
@@ -91,13 +94,19 @@ int main(int argc, char** argv)
 
     vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
 
-    auto* err = vidio_input_configure_capture((vidio_input*)devices[i], formats[0], nullptr, &actual_format);
-    (void)err; // TODO
+    size_t idx = 0;
+    for (; idx < nFormats; idx++) {
+      if (vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_MJPEG &&
+          vidio_video_format_get_width(formats[idx]) == 640)
+        break;
+    }
+
+    auto* err = vidio_input_configure_capture((vidio_input*) devices[i], formats[idx], nullptr, &actual_format);
+    (void) err; // TODO
 
     vidio_video_formats_free_list(formats);
-    vidio_input_start_capture_blocking((vidio_input*)devices[i], capture_callback);
+    vidio_input_start_capture_blocking((vidio_input*) devices[i], capture_callback);
   }
-
 
 
   vidio_input_devices_free_list(devices, true);

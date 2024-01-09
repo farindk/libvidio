@@ -13,6 +13,10 @@ set(libvidio_sources
         vidio_video_format.h
         colorconversion/converter.h
         colorconversion/converter.cc
+        colorconversion/yuv2rgb.h
+        colorconversion/yuv2rgb.cc
+        colorconversion/mjpeg.h
+        colorconversion/mjpeg.cc
         ${libvidio_headers})
 
 add_library(vidio ${libvidio_sources})

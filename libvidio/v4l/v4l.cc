@@ -421,7 +421,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
     return 0; // TODO
   }
 
-  FILE* fh = fopen("/home/farindk/out.bin", "wb");
+  //FILE* fh = fopen("/home/farindk/out.bin", "wb");
 
   int cnt = 0;
   for (; cnt < 150; cnt++) {
@@ -457,7 +457,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
     printf("%d : got %p %d at %d.%d:%d %ld - #%d\n", cnt, m_buffers[buf.index].start, buf.bytesused,
            buf.timecode.minutes, buf.timecode.seconds, buf.timecode.frames,
            buf.timestamp.tv_usec, buf.sequence);
-    fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
+    //fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
 
     const buffer& buffer = m_buffers[buf.index];
 
@@ -469,7 +469,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
         frame->copy_raw_plane(vidio_color_channel_interleaved, buffer.start, buf.bytesused);
         break;
       case V4L2_PIX_FMT_MJPEG:
-        frame->set_format(vidio_pixel_format_YUV422_YUYV, m_capture_width, m_capture_height);
+        frame->set_format(vidio_pixel_format_MJPEG, m_capture_width, m_capture_height);
         frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
                                     (const uint8_t*)buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
@@ -485,7 +485,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
     }
   }
 
-  fclose(fh);
+  //fclose(fh);
 
   return nullptr;
 }

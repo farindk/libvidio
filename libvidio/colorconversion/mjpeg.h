@@ -18,36 +18,11 @@
  * along with this program. If not, see <https://www.gnu.org/licenses/>.
  */
 
-#include "converter.h"
-#include <cassert>
+#ifndef LIBVIDIO_MJPEG_H
+#define LIBVIDIO_MJPEG_H
 
-#include "yuv2rgb.h"
-#include "mjpeg.h"
+class vidio_frame;
 
+vidio_frame* mjpeg_to_rgb8(const vidio_frame* input);
 
-static vidio_frame* convert_to_rgb8(const vidio_frame* input)
-{
-  vidio_pixel_format inputFormat = input->get_pixel_format();
-
-  switch (inputFormat) {
-    case vidio_pixel_format_YUV422_YUYV:
-      return yuyv_to_rgb8(input);
-    case vidio_pixel_format_MJPEG:
-      return mjpeg_to_rgb8(input);
-    default:
-      assert(false);
-      return nullptr;
-  }
-}
-
-
-vidio_frame* convert_frame(const vidio_frame* input, vidio_pixel_format format)
-{
-  switch (format) {
-    case vidio_pixel_format_RGB8:
-      return convert_to_rgb8(input);
-    default:
-      assert(false);
-      return nullptr;
-  }
-}
+#endif //LIBVIDIO_MJPEG_H
