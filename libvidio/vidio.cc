@@ -19,6 +19,7 @@
  */
 
 #include "libvidio/vidio.h"
+#include "libvidio/vidio_error.h"
 #include "libvidio/vidio_frame.h"
 #include "libvidio/vidio_input.h"
 #include "libvidio/vidio_video_format.h"
@@ -78,6 +79,44 @@ void vidio_free_string(const char* s)
   delete[] s;
 }
 
+static const char* make_vidio_string(const std::string& s)
+{
+  char* out = new char[s.length() + 1];
+  strcpy(out, s.c_str());
+  return out;
+}
+
+
+void vidio_error_release(const vidio_error* err)
+{
+  delete err;
+}
+
+vidio_error_code vidio_error_get_code(const vidio_error* err)
+{
+  return err->get_code();
+}
+
+const char* vidio_error_get_message(const vidio_error* err)
+{
+  return make_vidio_string(err->get_formatted_message());
+}
+
+const char* vidio_error_get_message_template(const vidio_error* err)
+{
+  return make_vidio_string(err->get_message_template());
+}
+
+const char* vidio_error_get_argument(const vidio_error* err, int n)
+{
+  return make_vidio_string(err->get_arg(n));
+}
+
+int vidio_error_get_number_of_arguments(const vidio_error* err)
+{
+  return err->get_number_of_args();
+}
+
 
 const struct vidio_input_device* const*
 vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)
@@ -109,13 +148,6 @@ void vidio_input_devices_free_list(const struct vidio_input_device* const* out_d
   delete[] out_devices;
 }
 
-
-const char* make_vidio_string(const std::string& s)
-{
-  char* out = new char[s.length() + 1];
-  strcpy(out, s.c_str());
-  return out;
-}
 
 const char* vidio_input_get_display_name(const struct vidio_input* input)
 {

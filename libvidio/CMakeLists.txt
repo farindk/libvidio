@@ -5,8 +5,10 @@ set(libvidio_headers
 
 set(libvidio_sources
         vidio.cc
-        vidio_frame.h
+        vidio_error.cc
+        vidio_error.h
         vidio_frame.cc
+        vidio_frame.h
         vidio_input.cc
         vidio_input.h
         vidio_video_format.cc
