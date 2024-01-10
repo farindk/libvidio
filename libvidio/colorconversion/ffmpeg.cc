@@ -157,3 +157,79 @@ vidio_frame* vidio_format_converter_ffmpeg::convert_avframe_to_vidio_frame(AVPix
 
   return out_frame;
 }
+
+
+vidio_format_converter_swscale::vidio_format_converter_swscale(vidio_pixel_format output_format)
+{
+  m_output_format = output_format;
+}
+
+vidio_format_converter_swscale::~vidio_format_converter_swscale()
+{
+  sws_freeContext(m_swscaleContext);
+}
+
+void vidio_format_converter_swscale::push(const vidio_frame* in_frame)
+{
+  int w = in_frame->get_width();
+  int h = in_frame->get_height();
+
+  AVPixelFormat input_av_format;
+  AVPixelFormat output_av_format;
+
+  const uint8_t* in_data[3];
+  int in_stride[3];
+
+  switch (in_frame->get_pixel_format()) {
+    case vidio_pixel_format_RGB8:
+      input_av_format = AV_PIX_FMT_RGB24;
+      in_data[0] = in_frame->get_plane(vidio_color_channel_interleaved, &in_stride[0]);
+      break;
+    case vidio_pixel_format_YUV422_YUYV:
+      input_av_format = AV_PIX_FMT_YUYV422;
+      in_data[0] = in_frame->get_plane(vidio_color_channel_interleaved, &in_stride[0]);
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+
+  vidio_frame* out_frame = new vidio_frame();
+  out_frame->set_format(m_output_format, w, h);
+
+  uint8_t* out_data[3];
+  int out_stride[3];
+
+  switch (m_output_format) {
+    case vidio_pixel_format_RGB8:
+      output_av_format = AV_PIX_FMT_RGB24;
+      out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 24);
+      out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
+      break;
+    case vidio_pixel_format_YUV422_YUYV:
+      output_av_format = AV_PIX_FMT_YUYV422;
+      out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 16);
+      out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  // SWScale conversion
+
+  if (m_swscaleContext == nullptr) {
+    m_swscaleContext = sws_getContext(w, h, input_av_format,
+                                      w, h, output_av_format,
+                                      SWS_FAST_BILINEAR, NULL, NULL, NULL);
+  }
+
+  sws_scale(m_swscaleContext,
+            in_data, in_stride,
+            0, h,
+            out_data, out_stride);
+
+  push_decoded_frame(out_frame);
+}
+

@@ -51,4 +51,20 @@ private:
 };
 
 
+struct vidio_format_converter_swscale : public vidio_format_converter
+{
+public:
+  vidio_format_converter_swscale(vidio_pixel_format output_format);
+
+  ~vidio_format_converter_swscale() override;
+
+  void push(const vidio_frame* in) override;
+
+private:
+  vidio_pixel_format m_output_format = vidio_pixel_format_undefined;
+
+  struct SwsContext* m_swscaleContext = nullptr;
+};
+
+
 #endif //LIBVIDIO_FFMPEG_H

@@ -27,36 +27,35 @@
 struct vidio_format_converter_function : public vidio_format_converter
 {
 public:
-  explicit vidio_format_converter_function(vidio_frame* (*func)(const vidio_frame*)) { m_func = func; }
+  explicit vidio_format_converter_function(vidio_frame* (* func)(const vidio_frame*)) { m_func = func; }
 
-  void push(const vidio_frame* f) override {
+  void push(const vidio_frame* f) override
+  {
     auto* out = m_func(f);
     push_decoded_frame(out);
   }
 
 private:
-  vidio_frame* (*m_func)(const vidio_frame*);
+  vidio_frame* (* m_func)(const vidio_frame*);
 };
 
 
 vidio_format_converter* vidio_format_converter::create(vidio_pixel_format in, vidio_pixel_format out)
 {
-  if (in == vidio_pixel_format_YUV422_YUYV && out == vidio_pixel_format_RGB8) {
-    return new vidio_format_converter_function(yuyv_to_rgb8);
-  }
-  else if (in == vidio_pixel_format_MJPEG) {
-    //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
-    auto* converter = new vidio_format_converter_ffmpeg();
-    converter->init(AV_CODEC_ID_MJPEG, out);
-    return converter;
-  }
-  else if (in == vidio_pixel_format_H264 && out == vidio_pixel_format_RGB8) {
+  if (in == vidio_pixel_format_MJPEG ||
+      in == vidio_pixel_format_H264) {
     //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
     auto* converter = new vidio_format_converter_ffmpeg();
     converter->init(AV_CODEC_ID_H264, out);
     return converter;
   }
   else {
+    //return new vidio_format_converter_function(yuyv_to_rgb8);
+    return new vidio_format_converter_swscale(out);
+  }
+  /*
+  else {
     return nullptr;
   }
+  */
 }
