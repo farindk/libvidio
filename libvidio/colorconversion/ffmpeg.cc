@@ -101,16 +101,30 @@ void vidio_format_converter_ffmpeg::push(const vidio_frame* input)
   int out_stride;
   out = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride);
 
-  for (int y = 0; y < h; y++)
-    for (int x = 0; x < w; x++) {
-      int yy = m_decodedFrame->data[0][y * m_decodedFrame->linesize[0] + x] - 16;
-      int u = m_decodedFrame->data[1][y * m_decodedFrame->linesize[1] + x / 2] - 128;
-      int v = m_decodedFrame->data[2][y * m_decodedFrame->linesize[2] + x / 2] - 128;
+  if (m_context->pix_fmt == AV_PIX_FMT_YUVJ422P) {
+    for (int y = 0; y < h; y++)
+      for (int x = 0; x < w; x++) {
+        int yy = m_decodedFrame->data[0][y * m_decodedFrame->linesize[0] + x] - 16;
+        int u = m_decodedFrame->data[1][y * m_decodedFrame->linesize[1] + x / 2] - 128;
+        int v = m_decodedFrame->data[2][y * m_decodedFrame->linesize[2] + x / 2] - 128;
 
-      out[y * out_stride + 3 * x + 0] = clip8(1.164 * yy + 1.1596 * v);
-      out[y * out_stride + 3 * x + 1] = clip8(1.164 * yy - 0.392 * u - 0.813 * v);
-      out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
-    }
+        out[y * out_stride + 3 * x + 0] = clip8(1.164 * yy + 1.1596 * v);
+        out[y * out_stride + 3 * x + 1] = clip8(1.164 * yy - 0.392 * u - 0.813 * v);
+        out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
+      }
+  }
+  else if (m_context->pix_fmt == AV_PIX_FMT_YUVJ420P) {
+    for (int y = 0; y < h; y++)
+      for (int x = 0; x < w; x++) {
+        int yy = m_decodedFrame->data[0][y * m_decodedFrame->linesize[0] + x] - 16;
+        int u = m_decodedFrame->data[1][(y/2) * m_decodedFrame->linesize[1] + x / 2] - 128;
+        int v = m_decodedFrame->data[2][(y/2) * m_decodedFrame->linesize[2] + x / 2] - 128;
+
+        out[y * out_stride + 3 * x + 0] = clip8(1.164 * yy + 1.1596 * v);
+        out[y * out_stride + 3 * x + 1] = clip8(1.164 * yy - 0.392 * u - 0.813 * v);
+        out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
+      }
+  }
 
   push_decoded_frame(out_frame);
 }

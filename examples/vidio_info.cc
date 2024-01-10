@@ -105,7 +105,7 @@ int main(int argc, char** argv)
 
     size_t idx = 0;
     for (; idx < nFormats; idx++) {
-      if (vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_MJPEG &&
+      if (vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_H264 &&
           vidio_video_format_get_width(formats[idx]) == 640)
         break;
     }
