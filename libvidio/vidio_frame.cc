@@ -116,7 +116,7 @@ void vidio_frame::add_raw_plane(vidio_color_channel channel, int w, int h, int b
   p.w = w;
   p.h = h;
   p.stride = memWidth;
-  p.format = vidio_channel_format_raw;
+  p.format = vidio_channel_format_pixels;
   p.bpp = bpp;
 
   p.mem = new uint8_t[memWidth * h];
@@ -134,7 +134,7 @@ void vidio_frame::add_external_raw_plane(vidio_color_channel channel,
   p.w = w;
   p.h = h;
   p.stride = stride;
-  p.format = vidio_channel_format_raw;
+  p.format = vidio_channel_format_pixels;
   p.mem = mem;
   p.memory_owned = false;
 

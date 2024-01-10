@@ -700,6 +700,8 @@ void vidio_input_device_v4l::stop_capturing()
   m_active_device->stop_capturing();
   if (m_capturing_thread.joinable()) {
     m_capturing_thread.join();
+
+    send_callback_message(vidio_input_message_end_of_stream);
   }
 }
 

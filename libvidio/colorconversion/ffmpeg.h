@@ -28,10 +28,11 @@ extern "C"
 #include <libavcodec/avcodec.h>
 }
 
+
 struct vidio_format_converter_ffmpeg : public vidio_format_converter
 {
 public:
-  vidio_error* init(enum AVCodecID);
+  vidio_error* init(enum AVCodecID, vidio_pixel_format output_format);
 
   ~vidio_format_converter_ffmpeg() override;
 
@@ -40,8 +41,13 @@ public:
 private:
   const AVCodec* m_codec = nullptr;
   AVCodecContext* m_context = nullptr;
-  //AVPacket* m_pkt = nullptr;
   AVFrame* m_decodedFrame = nullptr;
+
+  vidio_pixel_format m_output_format = vidio_pixel_format_undefined;
+
+  vidio_frame* convert_avframe_to_vidio_frame(AVPixelFormat input_format, AVFrame* input, vidio_pixel_format output_format);
+
+  struct SwsContext* m_swscaleContext = nullptr;
 };
 
 

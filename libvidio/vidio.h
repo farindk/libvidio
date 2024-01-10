@@ -84,7 +84,7 @@ enum vidio_pixel_format
   vidio_pixel_format_RGB8 = 1,
   vidio_pixel_format_RGB8_planar = 2,
   vidio_pixel_format_YUV420_planar = 100,
-  vidio_pixel_format_YUV422_YUYV = 3,
+  vidio_pixel_format_YUV422_YUYV = 101,
   vidio_pixel_format_MJPEG = 500,
   vidio_pixel_format_H264 = 501,
   vidio_pixel_format_H265 = 502
@@ -108,7 +108,7 @@ enum vidio_color_channel
 enum vidio_channel_format
 {
   vidio_channel_format_undefined = 0,
-  vidio_channel_format_raw = 1,
+  vidio_channel_format_pixels = 1,
   vidio_channel_format_compressed_MJPEG = 500,
   vidio_channel_format_compressed_H264 = 501,
   vidio_channel_format_compressed_H265 = 502

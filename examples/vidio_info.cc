@@ -58,7 +58,7 @@ bool save_frame(const vidio_frame* frame)
     if (rgbFrame == nullptr)
       break;
 
-#if 0
+#if 1
     char buf[100];
     sprintf(buf, "/home/farindk/out%04d.ppm", cnt);
     FILE* fh = fopen(buf, "wb");
@@ -109,7 +109,7 @@ public:
       }
 
       while (const vidio_frame* frame = vidio_input_peek_next_frame(m_input)) {
-        bool end = cnt_frame(frame);
+        bool end = save_frame(frame);
         vidio_input_pop_next_frame(m_input);
 
         if (end) {
@@ -149,6 +149,7 @@ void message_callback(vidio_input_message msg, void* userData)
     storage->frame_arrived();
   }
   else if (msg == vidio_input_message_end_of_stream) {
+    printf("================ STOP =================\n");
     storage->stop();
   }
   else if (msg == vidio_input_message_input_overflow) {
@@ -218,7 +219,7 @@ int main(int argc, char** argv)
 
   storage.run();
 
-  vidio_input_stop_capturing(selected_input);
+  //vidio_input_stop_capturing(selected_input);
 
   vidio_input_devices_free_list(devices, true);
   vidio_format_converter_release(converter);

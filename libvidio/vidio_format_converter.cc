@@ -44,16 +44,16 @@ vidio_format_converter* vidio_format_converter::create(vidio_pixel_format in, vi
   if (in == vidio_pixel_format_YUV422_YUYV && out == vidio_pixel_format_RGB8) {
     return new vidio_format_converter_function(yuyv_to_rgb8);
   }
-  else if (in == vidio_pixel_format_MJPEG && out == vidio_pixel_format_RGB8) {
+  else if (in == vidio_pixel_format_MJPEG) {
     //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
     auto* converter = new vidio_format_converter_ffmpeg();
-    converter->init(AV_CODEC_ID_MJPEG);
+    converter->init(AV_CODEC_ID_MJPEG, out);
     return converter;
   }
   else if (in == vidio_pixel_format_H264 && out == vidio_pixel_format_RGB8) {
     //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
     auto* converter = new vidio_format_converter_ffmpeg();
-    converter->init(AV_CODEC_ID_H264);
+    converter->init(AV_CODEC_ID_H264, out);
     return converter;
   }
   else {

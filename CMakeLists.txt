@@ -63,7 +63,7 @@ option(WITH_VIDEO4LINUX2 "Include Video4Linux2 backend" ON)
 
 option(WITH_FFMPEG "FFMPEG decoders" ON)
 if (WITH_FFMPEG)
-    find_package(FFMPEG COMPONENTS avcodec avutil)
+    find_package(FFMPEG COMPONENTS avcodec avutil swscale)
 endif ()
 
 # --- Create libvidio pkgconfig file

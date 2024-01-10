@@ -20,6 +20,12 @@
 
 #include "ffmpeg.h"
 #include "common.h"
+#include <cassert>
+
+extern "C"
+{
+#include <libswscale/swscale.h>
+}
 
 
 vidio_format_converter_ffmpeg::~vidio_format_converter_ffmpeg()
@@ -27,11 +33,17 @@ vidio_format_converter_ffmpeg::~vidio_format_converter_ffmpeg()
   avcodec_free_context(&m_context);
   av_frame_free(&m_decodedFrame);
   //av_packet_free(&m_pkt);
+  sws_freeContext(m_swscaleContext);
 }
 
 
-vidio_error* vidio_format_converter_ffmpeg::init(enum AVCodecID codecId)
+vidio_error* vidio_format_converter_ffmpeg::init(enum AVCodecID codecId, vidio_pixel_format output_format)
 {
+  if (output_format != vidio_pixel_format_RGB8 &&
+      output_format != vidio_pixel_format_YUV422_YUYV) {
+    return nullptr;
+  }
+
   // AVCodec
 
   m_codec = avcodec_find_decoder(codecId);
@@ -56,6 +68,8 @@ vidio_error* vidio_format_converter_ffmpeg::init(enum AVCodecID codecId)
   if (!m_decodedFrame) {
     return nullptr;
   }
+
+  m_output_format = output_format;
 
   return nullptr;
 }
@@ -90,41 +104,56 @@ void vidio_format_converter_ffmpeg::push(const vidio_frame* input)
 
   // convert to vidio_frame
 
-  int w = input->get_width();
-  int h = input->get_height();
+  vidio_frame* out_frame = convert_avframe_to_vidio_frame(m_context->pix_fmt, m_decodedFrame,
+                                                          m_output_format);
 
-  vidio_frame* out_frame = new vidio_frame();
-  out_frame->set_format(vidio_pixel_format_RGB8, w, h);
-  out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 24);
-
-  uint8_t* out;
-  int out_stride;
-  out = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride);
-
-  if (m_context->pix_fmt == AV_PIX_FMT_YUVJ422P) {
-    for (int y = 0; y < h; y++)
-      for (int x = 0; x < w; x++) {
-        int yy = m_decodedFrame->data[0][y * m_decodedFrame->linesize[0] + x] - 16;
-        int u = m_decodedFrame->data[1][y * m_decodedFrame->linesize[1] + x / 2] - 128;
-        int v = m_decodedFrame->data[2][y * m_decodedFrame->linesize[2] + x / 2] - 128;
-
-        out[y * out_stride + 3 * x + 0] = clip8(1.164 * yy + 1.1596 * v);
-        out[y * out_stride + 3 * x + 1] = clip8(1.164 * yy - 0.392 * u - 0.813 * v);
-        out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
-      }
-  }
-  else if (m_context->pix_fmt == AV_PIX_FMT_YUVJ420P) {
-    for (int y = 0; y < h; y++)
-      for (int x = 0; x < w; x++) {
-        int yy = m_decodedFrame->data[0][y * m_decodedFrame->linesize[0] + x] - 16;
-        int u = m_decodedFrame->data[1][(y/2) * m_decodedFrame->linesize[1] + x / 2] - 128;
-        int v = m_decodedFrame->data[2][(y/2) * m_decodedFrame->linesize[2] + x / 2] - 128;
-
-        out[y * out_stride + 3 * x + 0] = clip8(1.164 * yy + 1.1596 * v);
-        out[y * out_stride + 3 * x + 1] = clip8(1.164 * yy - 0.392 * u - 0.813 * v);
-        out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
-      }
-  }
 
   push_decoded_frame(out_frame);
+}
+
+
+vidio_frame* vidio_format_converter_ffmpeg::convert_avframe_to_vidio_frame(AVPixelFormat input_format,
+                                                                           AVFrame* input,
+                                                                           vidio_pixel_format output_format)
+{
+  int w = input->width;
+  int h = input->height;
+
+  AVPixelFormat output_av_format;
+
+  vidio_frame* out_frame = new vidio_frame();
+  out_frame->set_format(output_format, w, h);
+
+  uint8_t* out_data[3];
+  int out_stride[3];
+
+  switch (output_format) {
+    case vidio_pixel_format_RGB8:
+      output_av_format = AV_PIX_FMT_RGB24;
+      out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 24);
+      out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
+      break;
+    case vidio_pixel_format_YUV422_YUYV:
+      output_av_format = AV_PIX_FMT_YUYV422;
+      out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 16);
+      out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
+      break;
+    default:
+      assert(false);
+      break;
+  }
+
+  // SWScale conversion
+
+  if (m_swscaleContext == nullptr) {
+    m_swscaleContext = sws_getContext(w, h, m_context->pix_fmt,
+                                      w, h, output_av_format,
+                                      SWS_FAST_BILINEAR, NULL, NULL, NULL);
+  }
+
+  sws_scale(m_swscaleContext, m_decodedFrame->data, m_decodedFrame->linesize,
+            0, h,
+            out_data, out_stride);
+
+  return out_frame;
 }
