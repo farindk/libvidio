@@ -59,6 +59,11 @@ if (WITH_VIDEO4LINUX2)
     add_subdirectory(v4l)
 endif()
 
+if (FFMPEG_avcodec_FOUND)
+    target_compile_definitions(vidio PRIVATE WITH_FFMPEG)
+    target_link_libraries(vidio PRIVATE ${FFMPEG_LIBRARIES})
+endif ()
+
 if (ENABLE_MULTITHREADING_SUPPORT)
     find_package(Threads)
     target_link_libraries(vidio PRIVATE ${CMAKE_THREAD_LIBS_INIT})

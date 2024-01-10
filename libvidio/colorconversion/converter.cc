@@ -33,7 +33,7 @@ static vidio_frame* convert_to_rgb8(const vidio_frame* input)
     case vidio_pixel_format_YUV422_YUYV:
       return yuyv_to_rgb8(input);
     case vidio_pixel_format_MJPEG:
-      return mjpeg_to_rgb8(input);
+      return mjpeg_to_rgb8_ffmpeg(input);
     default:
       assert(false);
       return nullptr;

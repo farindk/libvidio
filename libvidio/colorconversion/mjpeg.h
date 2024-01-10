@@ -23,6 +23,8 @@
 
 class vidio_frame;
 
-vidio_frame* mjpeg_to_rgb8(const vidio_frame* input);
+vidio_frame* mjpeg_to_rgb8_small(const vidio_frame* input);
+
+vidio_frame* mjpeg_to_rgb8_ffmpeg(const vidio_frame* input);
 
 #endif //LIBVIDIO_MJPEG_H

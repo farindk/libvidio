@@ -44,7 +44,7 @@ vidio_format_converter* vidio_format_converter::create(vidio_pixel_format in, vi
     return new vidio_format_converter_function(yuyv_to_rgb8);
   }
   else if (in == vidio_pixel_format_MJPEG && out == vidio_pixel_format_RGB8) {
-    return new vidio_format_converter_function(mjpeg_to_rgb8);
+    return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
   }
   else {
     return nullptr;
