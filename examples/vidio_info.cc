@@ -21,10 +21,13 @@
 #include "libvidio/vidio.h"
 #include <cstdio>
 #include <iostream>
+#include <mutex>
+#include <condition_variable>
+
 
 vidio_format_converter* converter = nullptr;
 
-void capture_callback(const vidio_frame* frame)
+bool save_frame(const vidio_frame* frame)
 {
   std::cout << "callback\n";
 
@@ -48,15 +51,16 @@ void capture_callback(const vidio_frame* frame)
 
   vidio_format_converter_push_compressed(converter, frame);
 
+  static int cnt = 1;
+
   for (;;) {
     vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter);
     if (rgbFrame == nullptr)
       break;
 
-#if 1
-    static int cnt = 1;
+#if 0
     char buf[100];
-    sprintf(buf, "/home/farindk/out%04d.ppm", cnt++);
+    sprintf(buf, "/home/farindk/out%04d.ppm", cnt);
     FILE* fh = fopen(buf, "wb");
     fprintf(fh, "P6\n%d %d\n255\n", vidio_frame_get_width(rgbFrame), vidio_frame_get_height(rgbFrame));
     const uint8_t* data;
@@ -66,18 +70,99 @@ void capture_callback(const vidio_frame* frame)
       fwrite(data + y * stride, 1, stride, fh);
     }
     fclose(fh);
+
 #endif
+    printf("save %d\n", cnt);
+    cnt++;
 
     vidio_frame_release(rgbFrame);
   }
 
-  vidio_frame_release(frame);
+  //vidio_frame_release(frame);
+
+  return cnt >= 150;
+}
+
+
+bool cnt_frame(const vidio_frame* frame)
+{
+  static int cnt = 1;
+  printf("CNT = %d\n", cnt);
+  cnt++;
+  return cnt >= 150;
+}
+
+
+class StorageProcess
+{
+public:
+  explicit StorageProcess(vidio_input* i) : m_input(i) {}
+
+  void run()
+  {
+    while (!m_quit) {
+      {
+        std::unique_lock<std::mutex> lock(mutex);
+        while (vidio_input_peek_next_frame(m_input) == nullptr && !m_quit) {
+          cond.wait(lock);
+        }
+      }
+
+      while (const vidio_frame* frame = vidio_input_peek_next_frame(m_input)) {
+        bool end = cnt_frame(frame);
+        vidio_input_pop_next_frame(m_input);
+
+        if (end) {
+          vidio_input_stop_capturing(m_input);
+        }
+      }
+    }
+  }
+
+  void frame_arrived()
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    cond.notify_one();
+  }
+
+  void stop()
+  {
+    std::unique_lock<std::mutex> lock(mutex);
+    m_quit = true;
+    cond.notify_one();
+  }
+
+private:
+  vidio_input* m_input;
+  bool m_quit = false;
+
+  std::mutex mutex;
+  std::condition_variable cond;
+};
+
+
+void message_callback(vidio_input_message msg, void* userData)
+{
+  auto* storage = (StorageProcess*) userData;
+
+  if (msg == vidio_input_message_new_frame) {
+    storage->frame_arrived();
+  }
+  else if (msg == vidio_input_message_end_of_stream) {
+    storage->stop();
+  }
+  else if (msg == vidio_input_message_input_overflow) {
+    printf("OVERFLOW\n");
+  }
 }
 
 
 int main(int argc, char** argv)
 {
   printf("vidio_version: %s\n", vidio_get_version());
+
+  const vidio_video_format* selected_format = nullptr;
+  const vidio_input_device* selected_device = nullptr;
 
   const vidio_input_device* const* devices = vidio_list_input_devices(nullptr, nullptr);
   for (size_t i = 0; devices[i]; i++) {
@@ -101,24 +186,39 @@ int main(int argc, char** argv)
       vidio_free_string(formatname);
     }
 
-    vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
-
     size_t idx = 0;
     for (; idx < nFormats; idx++) {
       if (vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_H264 &&
-          vidio_video_format_get_width(formats[idx]) == 640)
+          vidio_video_format_get_width(formats[idx]) == 1920) {
+        selected_format = formats[idx];
+        selected_device = devices[i];
+
+        vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
+        auto* err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
+                                                  &actual_format);
+        (void) err; // TODO
+
+        converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
+                                           vidio_pixel_format_RGB8);
+
+        vidio_video_formats_free_list(formats);
         break;
+      }
     }
 
-    converter = vidio_create_converter(vidio_video_format_get_pixel_format(formats[idx]),
-                                       vidio_pixel_format_RGB8);
-
-    auto* err = vidio_input_configure_capture((vidio_input*) devices[i], formats[idx], nullptr, &actual_format);
-    (void) err; // TODO
-
-    vidio_video_formats_free_list(formats);
-    vidio_input_start_capture_blocking((vidio_input*) devices[i], capture_callback);
+    if (selected_format != nullptr)
+      break;
   }
+
+
+  auto* selected_input = (vidio_input*) selected_device;
+  StorageProcess storage(selected_input);
+  vidio_input_set_message_callback(selected_input, message_callback, &storage);
+  vidio_input_start_capturing(selected_input);
+
+  storage.run();
+
+  vidio_input_stop_capturing(selected_input);
 
   vidio_input_devices_free_list(devices, true);
   vidio_format_converter_release(converter);

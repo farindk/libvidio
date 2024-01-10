@@ -35,7 +35,7 @@ static uint8_t vidio_version_patch = VIDIO_VERSION_PATCH;
 #define str(s) #s
 
 static const char* vidio_version_string = xstr(VIDIO_VERSION_MAJOR) "." xstr(VIDIO_VERSION_MINOR) "." xstr(
-        VIDIO_VERSION_PATCH);
+    VIDIO_VERSION_PATCH);
 
 const char* vidio_get_version(void)
 {
@@ -268,9 +268,22 @@ vidio_error* vidio_input_configure_capture(struct vidio_input* input,
 }
 
 
-vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void (*callback)(const vidio_frame*))
+void vidio_input_set_message_callback(struct vidio_input* input,
+                                      void (*callback)(enum vidio_input_message, void* userData), void* userData)
 {
-  return input->start_capturing_blocking(callback);
+  input->set_message_callback(callback, userData);
+}
+
+
+vidio_error* vidio_input_start_capturing(struct vidio_input* input)
+{
+  return input->start_capturing();
+}
+
+
+void vidio_input_stop_capturing(struct vidio_input* input)
+{
+  input->stop_capturing();
 }
 
 
@@ -304,4 +317,14 @@ void vidio_format_converter_push_compressed(vidio_format_converter* converter, c
 vidio_frame* vidio_format_converter_pull_decompressed(vidio_format_converter* converter)
 {
   return converter->pull();
+}
+
+const vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input)
+{
+  return input->peek_next_frame();
+}
+
+void vidio_input_pop_next_frame(struct vidio_input* input)
+{
+  input->pop_next_frame();
 }

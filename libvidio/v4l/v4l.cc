@@ -130,12 +130,12 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
     // --- list supported formats
 
     auto formats = list_v4l_formats(V4L2_BUF_TYPE_VIDEO_CAPTURE);
-    for (auto f: formats) {
+    for (auto f : formats) {
       format_v4l format;
       format.m_fmtdesc = f;
 
       auto frmsizes = list_v4l_framesizes(f.pixelformat);
-      for (auto s: frmsizes) {
+      for (auto s : frmsizes) {
         framesize_v4l fsize;
         fsize.m_framesize = s;
 
@@ -143,7 +143,8 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
           std::vector<v4l2_frmivalenum> frmintervals;
           if (s.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
             frmintervals = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
-          } else {
+          }
+          else {
             frmintervals = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
           }
 
@@ -246,26 +247,28 @@ std::vector<vidio_video_format_v4l*> vidio_v4l_raw_device::get_video_formats() c
 {
   std::vector<vidio_video_format_v4l*> formats;
 
-  for (const auto& f: m_formats) {
+  for (const auto& f : m_formats) {
 
-    for (const auto& r: f.m_framesizes) {
+    for (const auto& r : f.m_framesizes) {
       uint32_t w, h;
       if (r.m_framesize.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
         w = r.m_framesize.discrete.width;
         h = r.m_framesize.discrete.height;
-      } else {
+      }
+      else {
         w = r.m_framesize.stepwise.max_width;
         h = r.m_framesize.stepwise.max_height;
       }
 
-      for (const auto& i: r.m_frameintervals) {
+      for (const auto& i : r.m_frameintervals) {
         // swap num/den because frame-interval is in seconds/frame
 
         vidio_fraction framerate;
         if (i.type == V4L2_FRMIVAL_TYPE_DISCRETE) {
           framerate.numerator = i.discrete.denominator;
           framerate.denominator = i.discrete.numerator;
-        } else {
+        }
+        else {
           framerate.numerator = i.stepwise.max.denominator;
           framerate.denominator = i.stepwise.max.numerator;
         }
@@ -366,11 +369,10 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 }
 
 
-vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(const vidio_frame*))
+vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v4l* input_device)
 {
   assert(m_fd != -1);
-  assert(callback != nullptr);
-
+  assert(input_device != nullptr);
 
   // --- request buffers
 
@@ -387,7 +389,8 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
       fprintf(stderr, "%s does not support "
                       "memory mappingn", "QWE");
       exit(EXIT_FAILURE);
-    } else {
+    }
+    else {
 //      errno_exit("VIDIOC_REQBUFS");
     }
   }
@@ -414,11 +417,11 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
 
     m_buffers[i].length = buf.length;
     m_buffers[i].start =
-            mmap(nullptr /* start anywhere */,
-                 buf.length,
-                 PROT_READ | PROT_WRITE /* required */,
-                 MAP_SHARED /* recommended */,
-                 m_fd, buf.m.offset);
+        mmap(nullptr /* start anywhere */,
+             buf.length,
+             PROT_READ | PROT_WRITE /* required */,
+             MAP_SHARED /* recommended */,
+             m_fd, buf.m.offset);
 
     if (MAP_FAILED == m_buffers[i].start) {
       int e = errno;
@@ -451,8 +454,12 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
 
   //FILE* fh = fopen("/home/farindk/out.bin", "wb");
 
+  m_capturing_active = true;
+
   int cnt = 0;
-  for (; cnt < 150; cnt++) {
+  while (m_capturing_active) {
+    cnt++;
+
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(m_fd, &fds);
@@ -499,7 +506,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
       case V4L2_PIX_FMT_MJPEG:
         frame->set_format(vidio_pixel_format_MJPEG, m_capture_width, m_capture_height);
         frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
-                                    (const uint8_t*)buffer.start, buf.bytesused,
+                                    (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
       case V4L2_PIX_FMT_H264:
@@ -508,18 +515,24 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(void (* callback)(co
       case V4L2_PIX_FMT_H264_SLICE:
         frame->set_format(vidio_pixel_format_H264, m_capture_width, m_capture_height);
         frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
-                                    (const uint8_t*)buffer.start, buf.bytesused,
+                                    (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
     }
 
-    callback(frame);
+    input_device->push_frame_into_queue(frame);
 
     // --- re-queue buffer
 
     if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
       return 0; // TODO
     }
+  }
+
+
+  type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+  if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type)) {
+    return 0; // TODO
   }
 
   //fclose(fh);
@@ -593,12 +606,12 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
 
   // --- group v4l devices that operate on the same hardware
 
-  for (auto dev: rawdevices) {
+  for (auto dev : rawdevices) {
     // If there is an existing vidio device for the same hardware device, add the v4l device to this,
     // otherwise create a new vidio device.
 
     vidio_input_device_v4l* captureDevice = nullptr;
-    for (auto cd: devices) {
+    for (auto cd : devices) {
       if (cd->matches_v4l_raw_device(dev)) {
         captureDevice = cd;
         break;
@@ -607,7 +620,8 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
 
     if (captureDevice) {
       captureDevice->add_v4l_raw_device(dev);
-    } else {
+    }
+    else {
       captureDevice = new vidio_input_device_v4l(dev);
       devices.emplace_back(captureDevice);
     }
@@ -621,7 +635,7 @@ std::vector<vidio_video_format*> vidio_input_device_v4l::get_video_formats() con
 {
   std::vector<vidio_video_format*> formats;
 
-  for (auto dev: m_v4l_capture_devices) {
+  for (auto dev : m_v4l_capture_devices) {
     auto f = dev->get_video_formats();
     formats.insert(formats.end(), f.begin(), f.end());
   }
@@ -640,7 +654,7 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
 
   vidio_v4l_raw_device* capturedev = nullptr;
   __u32 pixelformat = format_v4l->get_v4l2_pixel_format();
-  for (const auto& dev: m_v4l_capture_devices) {
+  for (const auto& dev : m_v4l_capture_devices) {
     if (dev->supports_pixel_format(pixelformat)) {
       capturedev = dev;
       break;
@@ -667,13 +681,66 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
 }
 
 
-vidio_error* vidio_input_device_v4l::start_capturing_blocking(void (* callback)(const vidio_frame*))
+vidio_error* vidio_input_device_v4l::start_capturing()
 {
   if (!m_active_device) {
     return 0; // TODO
   }
 
-  m_active_device->start_capturing_blocking(callback);
+  m_capturing_thread = std::thread(&vidio_v4l_raw_device::start_capturing_blocking, m_active_device, this);
+
+  //m_active_device->start_capturing_blocking(callback);
 
   return nullptr;
+}
+
+
+void vidio_input_device_v4l::stop_capturing()
+{
+  m_active_device->stop_capturing();
+  if (m_capturing_thread.joinable()) {
+    m_capturing_thread.join();
+  }
+}
+
+
+const vidio_frame* vidio_input_device_v4l::peek_next_frame() const
+{
+  std::lock_guard<std::mutex> lock(m_queue_mutex);
+
+  if (m_frame_queue.empty()) {
+    return nullptr;
+  }
+  else {
+    return m_frame_queue.front();
+  }
+}
+
+void vidio_input_device_v4l::pop_next_frame()
+{
+  std::lock_guard<std::mutex> lock(m_queue_mutex);
+  delete m_frame_queue.front(); // TODO: we could reuse these frames
+  m_frame_queue.pop_front();
+}
+
+
+void vidio_input_device_v4l::push_frame_into_queue(const vidio_frame* f)
+{
+  bool overflow = false;
+
+  {
+    std::lock_guard<std::mutex> lock(m_queue_mutex);
+
+    if (m_frame_queue.size() < cMaxFrameQueueLength) {
+      m_frame_queue.push_back(f);
+    }
+    else {
+      overflow = true;
+    }
+  }
+
+  if (overflow)
+    send_callback_message(vidio_input_message_input_overflow);
+  else
+    send_callback_message(vidio_input_message_new_frame);
 }

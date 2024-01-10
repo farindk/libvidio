@@ -40,7 +40,29 @@ public:
   virtual vidio_error* set_capture_format(const vidio_video_format* requested_format,
                                           vidio_video_format** out_actual_format) = 0;
 
-  virtual  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*)) = 0;
+  virtual void set_message_callback(void (*callback)(enum vidio_input_message, void* userData), void* userData) {
+    m_message_callback = callback;
+    m_user_data = userData;
+  }
+
+  virtual vidio_error* start_capturing() = 0;
+
+  virtual void stop_capturing() = 0;
+
+  virtual const vidio_frame* peek_next_frame() const = 0;
+
+  virtual void pop_next_frame() = 0;
+
+private:
+  void (*m_message_callback)(enum vidio_input_message, void* userData) = nullptr;
+  void* m_user_data;
+
+protected:
+  void send_callback_message(enum vidio_input_message msg) const {
+    if (m_message_callback) {
+      m_message_callback(msg, m_user_data);
+    }
+  }
 };
 
 

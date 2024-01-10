@@ -28,6 +28,9 @@
 #include <libvidio/vidio.h>
 #include <libvidio/vidio_input.h>
 #include <libvidio/vidio_video_format.h>
+#include <deque>
+#include <thread>
+#include <mutex>
 
 
 struct vidio_video_format_v4l : public vidio_video_format
@@ -80,7 +83,9 @@ public:
   vidio_error* set_capture_format(const vidio_video_format_v4l* requested_format,
                                   vidio_video_format_v4l** out_actual_format);
 
-  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*));
+  vidio_error* start_capturing_blocking(struct vidio_input_device_v4l*);
+
+  void stop_capturing() { m_capturing_active = false; }
 
   vidio_error* open();
 
@@ -91,6 +96,8 @@ public:
 private:
   std::string m_device_file;
   int m_fd = -1; // < 0 if closed
+
+  bool m_capturing_active = false;
 
   bool m_supports_framerate = false;
   struct v4l2_capability m_caps;
@@ -152,12 +159,29 @@ public:
   vidio_error* set_capture_format(const vidio_video_format* requested_format,
                                   vidio_video_format** out_actual_format) override;
 
-  vidio_error* start_capturing_blocking(void (*callback)(const vidio_frame*)) override;
+  vidio_error* start_capturing() override;
+
+  void stop_capturing() override;
+
+  const vidio_frame* peek_next_frame() const override;
+
+  void pop_next_frame() override;
 
 private:
   std::vector<vidio_v4l_raw_device*> m_v4l_capture_devices;
 
   vidio_v4l_raw_device* m_active_device = nullptr;
+
+  std::thread m_capturing_thread;
+
+  std::deque<const vidio_frame*> m_frame_queue;
+  mutable std::mutex m_queue_mutex;
+
+  static const int cMaxFrameQueueLength = 20;
+
+  void push_frame_into_queue(const vidio_frame*);
+
+  friend struct vidio_v4l_raw_device; // to be able to access push_frame_into_queue()
 };
 
 

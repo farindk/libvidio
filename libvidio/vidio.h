@@ -207,6 +207,13 @@ enum vidio_input_source
   vidio_input_source_Video4Linux2 = 1
 };
 
+enum vidio_input_message
+{
+  vidio_input_message_new_frame,
+  vidio_input_message_end_of_stream,
+  vidio_input_message_input_overflow
+};
+
 LIBVIDIO_API const struct vidio_input_device* const*
 vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
 
@@ -225,8 +232,17 @@ LIBVIDIO_API vidio_error* vidio_input_configure_capture(struct vidio_input* inpu
 
 struct vidio_frame;
 
-LIBVIDIO_API vidio_error* vidio_input_start_capture_blocking(struct vidio_input* input, void (*)(const vidio_frame*));
+// Note: do no heavy processing in the callback function as this runs in the main capturing loop.
+LIBVIDIO_API void vidio_input_set_message_callback(struct vidio_input* input,
+                                                   void (*)(enum vidio_input_message, void* userData), void* userData);
 
+LIBVIDIO_API vidio_error* vidio_input_start_capturing(struct vidio_input* input);
+
+LIBVIDIO_API void vidio_input_stop_capturing(struct vidio_input* input);
+
+LIBVIDIO_API const vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
+
+LIBVIDIO_API void vidio_input_pop_next_frame(struct vidio_input* input);
 }
 
 #endif //LIBVIDIO_VIDIO_H
