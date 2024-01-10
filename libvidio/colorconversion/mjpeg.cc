@@ -126,7 +126,6 @@ vidio_frame* mjpeg_to_rgb8_ffmpeg(const vidio_frame* input)
   AVFrame* decodedFrame = av_frame_alloc();
   if (!decodedFrame) {
     avcodec_free_context(&codecCtx);
-    avcodec_free_context(&codecCtx);
     return nullptr;
   }
 

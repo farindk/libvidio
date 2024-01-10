@@ -19,6 +19,8 @@ set(libvidio_sources
         colorconversion/yuv2rgb.cc
         colorconversion/mjpeg.h
         colorconversion/mjpeg.cc
+        colorconversion/ffmpeg.h
+        colorconversion/ffmpeg.cc
         ${libvidio_headers})
 
 add_library(vidio ${libvidio_sources})

@@ -54,7 +54,8 @@ private:
   std::deque<vidio_frame*> m_output_queue;
 
 protected:
-  void push_frame(vidio_frame* f) { m_output_queue.push_back(f); }
+  // derived classes should call this to deposit the decoded frames
+  void push_decoded_frame(vidio_frame* f) { m_output_queue.push_back(f); }
 
   vidio_format_converter() = default;
 };

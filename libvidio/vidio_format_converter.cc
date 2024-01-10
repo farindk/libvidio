@@ -21,16 +21,17 @@
 #include "vidio_format_converter.h"
 #include "colorconversion/yuv2rgb.h"
 #include "colorconversion/mjpeg.h"
+#include "colorconversion/ffmpeg.h"
 
 
 struct vidio_format_converter_function : public vidio_format_converter
 {
 public:
-  vidio_format_converter_function(vidio_frame* (*func)(const vidio_frame*)) { m_func = func; }
+  explicit vidio_format_converter_function(vidio_frame* (*func)(const vidio_frame*)) { m_func = func; }
 
   void push(const vidio_frame* f) override {
     auto* out = m_func(f);
-    push_frame(out);
+    push_decoded_frame(out);
   }
 
 private:
@@ -44,7 +45,10 @@ vidio_format_converter* vidio_format_converter::create(vidio_pixel_format in, vi
     return new vidio_format_converter_function(yuyv_to_rgb8);
   }
   else if (in == vidio_pixel_format_MJPEG && out == vidio_pixel_format_RGB8) {
-    return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
+    //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
+    auto* converter = new vidio_format_converter_ffmpeg();
+    converter->init(AV_CODEC_ID_MJPEG);
+    return converter;
   }
   else {
     return nullptr;
