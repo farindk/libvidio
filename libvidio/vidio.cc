@@ -280,10 +280,12 @@ const char* vidio_video_format_get_user_description(const struct vidio_video_for
   return make_vidio_string(format->get_user_description());
 }
 
-void vidio_video_formats_free_list(const struct vidio_video_format* const* list)
+void vidio_video_formats_free_list(const struct vidio_video_format* const* list, int also_free_formats)
 {
-  for (auto* p = list; *p; p++) {
-    delete *p;
+  if (also_free_formats) {
+    for (auto* p = list; *p; p++) {
+      delete *p;
+    }
   }
 
   delete[] list;

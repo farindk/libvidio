@@ -204,7 +204,7 @@ LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vi
 LIBVIDIO_API const struct vidio_video_format* const*
 vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
 
-LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const*);
+LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const*, int also_free_formats);
 
 
 // === Video Inputs ===

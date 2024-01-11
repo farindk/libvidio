@@ -202,7 +202,7 @@ int main(int argc, char** argv)
         converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
                                            vidio_pixel_format_RGB8);
 
-        vidio_video_formats_free_list(formats);
+        vidio_video_formats_free_list(formats, true);
         break;
       }
     }
