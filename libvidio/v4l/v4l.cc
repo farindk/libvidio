@@ -202,7 +202,32 @@ std::vector<v4l2_frmsizeenum> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pi
       break;
     }
 
-    frmsizes.emplace_back(framesize);
+    // check if there is a duplicate framesize (my SVPro camera lists one size twice)
+
+    bool duplicate_found = false;
+    for (size_t i = 0; i < frmsizes.size(); i++) {
+      if (frmsizes[i].type == framesize.type) {
+        if (frmsizes[i].type == V4L2_FRMSIZE_TYPE_DISCRETE &&
+            frmsizes[i].discrete.width == framesize.discrete.width &&
+            frmsizes[i].discrete.height == framesize.discrete.height) {
+          duplicate_found = true;
+          break;
+        }
+        else if (frmsizes[i].stepwise.min_width == framesize.stepwise.min_width &&
+                 frmsizes[i].stepwise.max_width == framesize.stepwise.max_width &&
+                 frmsizes[i].stepwise.min_height == framesize.stepwise.min_height &&
+                 frmsizes[i].stepwise.max_height == framesize.stepwise.max_height &&
+                 frmsizes[i].stepwise.step_width == framesize.stepwise.step_width &&
+                 frmsizes[i].stepwise.step_height == framesize.stepwise.step_height) {
+          duplicate_found = true;
+          break;
+        }
+      }
+    }
+
+    if (!duplicate_found) {
+      frmsizes.emplace_back(framesize);
+    }
   }
 
   return frmsizes;
@@ -230,7 +255,36 @@ vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u
       break;
     }
 
-    frmivals.emplace_back(frameinterval);
+
+    // check if there is a duplicate frame-interval (my SVPro camera lists some twice)
+
+    bool duplicate_found = false;
+    for (size_t i = 0; i < frmivals.size(); i++) {
+      const auto& f0 = frmivals[i];
+      const auto& f1 = frameinterval;
+
+      if (f0.type == f1.type) {
+        if (f0.type == V4L2_FRMIVAL_TYPE_DISCRETE &&
+            f0.discrete.numerator == f1.discrete.numerator &&
+            f0.discrete.denominator == f1.discrete.denominator) {
+          duplicate_found = true;
+          break;
+        }
+        else if (f0.stepwise.min.numerator == f1.stepwise.min.numerator &&
+                 f0.stepwise.min.denominator == f1.stepwise.min.denominator &&
+                 f0.stepwise.max.numerator == f1.stepwise.max.numerator &&
+                 f0.stepwise.max.denominator == f1.stepwise.max.denominator &&
+                 f0.stepwise.step.numerator == f1.stepwise.step.numerator &&
+                 f0.stepwise.step.denominator == f1.stepwise.step.denominator) {
+          duplicate_found = true;
+          break;
+        }
+      }
+    }
+
+    if (!duplicate_found) {
+      frmivals.emplace_back(frameinterval);
+    }
   }
 
   return frmivals;
