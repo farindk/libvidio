@@ -118,7 +118,7 @@ int vidio_error_get_number_of_arguments(const vidio_error* err)
 }
 
 
-const struct vidio_input_device* const*
+struct vidio_input_device* const*
 vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)
 {
   std::vector<vidio_input_device*> devices = vidio_input_device::list_input_devices(filter);
@@ -146,6 +146,12 @@ void vidio_input_devices_free_list(const struct vidio_input_device* const* out_d
   }
 
   delete[] out_devices;
+}
+
+
+void vidio_input_device_release(const struct vidio_input_device* device)
+{
+  delete device;
 }
 
 
@@ -291,11 +297,16 @@ void vidio_video_formats_free_list(const struct vidio_video_format* const* list,
   delete[] list;
 }
 
+void vidio_video_format_release(const struct vidio_video_format* format)
+{
+  delete format;
+}
+
 
 vidio_error* vidio_input_configure_capture(struct vidio_input* input,
                                            const vidio_video_format* requested_format,
                                            const vidio_output_format*,
-                                           vidio_video_format** out_actual_format)
+                                           const vidio_video_format** out_actual_format)
 {
   auto err = input->set_capture_format(requested_format, out_actual_format);
   return err;

@@ -81,7 +81,7 @@ public:
   bool supports_pixel_format(__u32 pixelformat) const;
 
   vidio_error* set_capture_format(const vidio_video_format_v4l* requested_format,
-                                  vidio_video_format_v4l** out_actual_format);
+                                  const vidio_video_format_v4l** out_actual_format);
 
   vidio_error* start_capturing_blocking(struct vidio_input_device_v4l*);
 
@@ -157,7 +157,7 @@ public:
   std::vector<vidio_video_format*> get_video_formats() const override;
 
   vidio_error* set_capture_format(const vidio_video_format* requested_format,
-                                  vidio_video_format** out_actual_format) override;
+                                  const vidio_video_format** out_actual_format) override;
 
   vidio_error* start_capturing() override;
 

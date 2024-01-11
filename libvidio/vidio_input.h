@@ -38,7 +38,7 @@ public:
   virtual std::vector<vidio_video_format*> get_video_formats() const = 0;
 
   virtual vidio_error* set_capture_format(const vidio_video_format* requested_format,
-                                          vidio_video_format** out_actual_format) = 0;
+                                          const vidio_video_format** out_actual_format) = 0;
 
   virtual void set_message_callback(void (*callback)(enum vidio_input_message, void* userData), void* userData) {
     m_message_callback = callback;

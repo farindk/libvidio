@@ -201,10 +201,29 @@ vidio_video_format_get_pixel_format_class(const struct vidio_video_format* forma
 LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
 
 
+/**
+ * Get a list of video formats supported by this input.
+ * The returned list and its entries must be released with `vidio_video_formats_free_list`.
+ * The returned number of entries does not include the NULL termination.
+ *
+ * @param input The video input.
+ * @param out_number The number of video formats returned. Optional, may be NULL.
+ * @return Array of video formats, terminated by NULL entry.
+ */
 LIBVIDIO_API const struct vidio_video_format* const*
 vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number);
 
-LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const*, int also_free_formats);
+/**
+ * Free a list of video formats.
+ * This function can either free the list together with all the formats contained in it
+ * or just the list.
+ *
+ * @param format_list A list of video formats.
+ * @param also_free_formats If set to 'false', only the list is released, but not the format objects listed.
+ */
+LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const* format_list, int also_free_formats);
+
+LIBVIDIO_API void vidio_video_format_release(const struct vidio_video_format*);
 
 
 // === Video Inputs ===
@@ -235,10 +254,12 @@ enum vidio_input_message
   vidio_input_message_input_overflow
 };
 
-LIBVIDIO_API const struct vidio_input_device* const*
+LIBVIDIO_API struct vidio_input_device* const*
 vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
 
 LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device* const* devices, int also_free_devices);
+
+LIBVIDIO_API void vidio_input_device_release(const struct vidio_input_device* device);
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 
@@ -249,7 +270,7 @@ struct vidio_output_format;
 LIBVIDIO_API vidio_error* vidio_input_configure_capture(struct vidio_input* input,
                                                         const vidio_video_format* requested_format,
                                                         const vidio_output_format*,
-                                                        vidio_video_format** out_actual_format);
+                                                        const vidio_video_format** out_actual_format);
 
 struct vidio_frame;
 

@@ -314,7 +314,7 @@ static vidio_pixel_format v4l2_pixelformat_to_vidio_format(__u32 v4l_format)
 }
 
 vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v4l* format_v4l,
-                                                      vidio_video_format_v4l** out_format)
+                                                      const vidio_video_format_v4l** out_format)
 {
   if (!is_open()) {
     auto* err = open();
@@ -645,7 +645,7 @@ std::vector<vidio_video_format*> vidio_input_device_v4l::get_video_formats() con
 
 
 vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format* requested_format,
-                                                        vidio_video_format** out_actual_format)
+                                                        const vidio_video_format** out_actual_format)
 {
   const auto* format_v4l = dynamic_cast<const vidio_video_format_v4l*>(requested_format);
   if (!format_v4l) {
@@ -667,7 +667,7 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
     return 0; // TODO
   }
 
-  vidio_video_format_v4l* actual_format = nullptr;
+  const vidio_video_format_v4l* actual_format = nullptr;
   auto* err = capturedev->set_capture_format(format_v4l, &actual_format);
   if (err) {
     return err;

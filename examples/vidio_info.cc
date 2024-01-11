@@ -194,7 +194,7 @@ int main(int argc, char** argv)
         selected_format = formats[idx];
         selected_device = devices[i];
 
-        vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
+        const vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
         auto* err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
                                                   &actual_format);
         (void) err; // TODO
