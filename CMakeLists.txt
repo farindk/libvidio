@@ -81,7 +81,7 @@ else ()
     set(includedir "\${prefix}/${CMAKE_INSTALL_INCLUDEDIR}")
 endif ()
 if (WITH_FFMPEG)
-    list(APPEND REQUIRES_PRIVATE "ffmpeg")
+    list(APPEND REQUIRES_PRIVATE "libavcodec")
 endif ()
 
 list(JOIN REQUIRES_PRIVATE " " REQUIRES_PRIVATE)
