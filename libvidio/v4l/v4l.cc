@@ -589,6 +589,11 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     return 0; // TODO
   }
 
+  for (__u32 i = 0 /**/; i < req.count; i++) {
+    munmap(m_buffers[i].start, m_buffers[i].length);
+  }
+
+  close();
   //fclose(fh);
 
   return nullptr;
