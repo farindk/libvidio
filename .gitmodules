@@ -1,0 +1,3 @@
+[submodule "libvidio/third-party/nlohmann-json"]
+	path = libvidio/third-party/nlohmann-json
+	url = https://github.com/nlohmann/json.git

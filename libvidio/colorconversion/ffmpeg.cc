@@ -146,6 +146,7 @@ vidio_frame* vidio_format_converter_ffmpeg::convert_avframe_to_vidio_frame(AVPix
       out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
       break;
     default:
+      printf("output format assert: %d\n", output_format);
       assert(false);
       break;
   }

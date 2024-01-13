@@ -19,3 +19,24 @@
  */
 
 #include "vidio_video_format.h"
+
+#if WITH_JSON
+#include "nlohmann/json.hpp"
+#include "v4l/v4l.h"
+
+const vidio_video_format* vidio_video_format::deserialize(const std::string& jsonStr)
+{
+  nlohmann::json json = nlohmann::json::parse(jsonStr);
+
+  if (!json.contains("class")) {
+    return nullptr;
+  }
+
+  std::string cl = json["class"];
+  if (cl == "v4l2") {
+    return new vidio_video_format_v4l(json);
+  }
+
+  return nullptr;
+}
+#endif

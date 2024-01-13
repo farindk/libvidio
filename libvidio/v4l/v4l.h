@@ -32,6 +32,10 @@
 #include <thread>
 #include <mutex>
 
+#if WITH_JSON
+#include "nlohmann/json.hpp"
+#endif
+
 
 struct vidio_video_format_v4l : public vidio_video_format
 {
@@ -39,6 +43,10 @@ public:
   vidio_video_format_v4l(v4l2_fmtdesc fmt,
                          uint32_t width, uint32_t height,
                          vidio_fraction framerate);
+
+#if WITH_JSON
+  vidio_video_format_v4l(const nlohmann::json& json);
+#endif
 
   uint32_t get_width() const override { return m_width; }
 
@@ -54,8 +62,12 @@ public:
 
   vidio_pixel_format get_pixel_format() const override;
 
+#if WITH_JSON
+  std::string serialize() const override;
+#endif
+
 private:
-  v4l2_fmtdesc m_format;
+  v4l2_fmtdesc m_format{};
   uint32_t m_width, m_height;
   vidio_fraction m_framerate;
 

@@ -291,6 +291,18 @@ const char* vidio_video_format_get_user_description(const struct vidio_video_for
   return make_vidio_string(format->get_user_description());
 }
 
+#if WITH_JSON
+const char* vidio_video_format_serialize(const struct vidio_video_format* format)
+{
+  return make_vidio_string(format->serialize());
+}
+
+const vidio_video_format* vidio_video_format_deserialize(const char* serializedString)
+{
+  return vidio_video_format::deserialize(serializedString);
+}
+#endif
+
 void vidio_video_formats_free_list(const struct vidio_video_format* const* list, int also_free_formats)
 {
   if (also_free_formats) {

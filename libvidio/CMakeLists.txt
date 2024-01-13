@@ -63,6 +63,12 @@ if (WITH_VIDEO4LINUX2)
     add_subdirectory(v4l)
 endif()
 
+if (WITH_JSON)
+    add_subdirectory(third-party/nlohmann-json)
+    target_include_directories(vidio PRIVATE third-party/nlohmann-json/include)
+    target_compile_definitions(vidio PRIVATE WITH_JSON)
+endif()
+
 if (FFMPEG_avcodec_FOUND)
     target_compile_definitions(vidio PRIVATE WITH_FFMPEG)
     target_link_libraries(vidio PRIVATE ${FFMPEG_LIBRARIES})

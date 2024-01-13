@@ -88,6 +88,48 @@ vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
   m_format_class = v4l_pixelformat_to_pixel_format_class(fmt.pixelformat);
 }
 
+#if WITH_JSON
+vidio_video_format_v4l::vidio_video_format_v4l(const nlohmann::json& json)
+{
+  // v4l2_fmtdesc
+
+  m_format.type = json["format_type"]; // V4L2_BUF_TYPE_VIDEO_CAPTURE or V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE (TODO: in the future)
+  m_format.flags = json["format_flags"];
+  m_format.pixelformat = json["format_pixelformat"];
+  m_format.mbus_code = json["format_mbus_code"];
+
+  std::string descr = json["format_description"];
+  strncpy((char*) m_format.description, descr.c_str(), 32);
+  m_format.description[31] = 0;
+
+  // resolution / frame-rate
+
+  m_width = json["width"];
+  m_height = json["height"];
+  m_framerate.numerator = json["framerate_numerator"];
+  m_framerate.denominator = json["framerate_denominator"];
+}
+#endif
+
+#if WITH_JSON
+std::string vidio_video_format_v4l::serialize() const
+{
+  nlohmann::json json{
+      {"class", "v4l2"},
+      {"format_type", m_format.type},
+      {"format_flags", m_format.flags},
+      {"format_pixelformat", m_format.pixelformat},
+      {"format_mbus_code", m_format.mbus_code},
+      {"format_description", m_format.description},
+      {"width", m_width},
+      {"height", m_height},
+      {"framerate_numerator", m_framerate.numerator},
+      {"framerate_denominator", m_framerate.denominator}
+  };
+
+  return json.dump();
+}
+#endif
 
 vidio_pixel_format vidio_video_format_v4l::get_pixel_format() const
 {
@@ -371,10 +413,12 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
                                                       const vidio_video_format_v4l** out_format)
 {
   if (!is_open()) {
+    printf("open device (%d)\n", m_fd);
     auto* err = open();
     if (err) {
       return err;
     }
+    printf("-> (%d)\n", m_fd);
   }
 
   assert(m_fd >= 0);
@@ -390,6 +434,7 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 
   ret = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
   if (ret == -1) {
+    printf("ERROR S_FMT: %d\n", errno);
     return 0; // TODO
   }
 
@@ -425,6 +470,7 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 
 vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v4l* input_device)
 {
+  printf("vidio_v4l_raw_device::start_capturing_blocking fd=%d\n", m_fd);
   assert(m_fd != -1);
   assert(input_device != nullptr);
 
@@ -442,6 +488,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     if (EINVAL == errno) {
       fprintf(stderr, "%s does not support "
                       "memory mappingn", "QWE");
+      printf("vidio_v4l_raw_device::ERROR VIDIOC_REQBUFS\n");
       exit(EXIT_FAILURE);
     }
     else {
@@ -452,6 +499,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
   if (req.count < 2) {
     fprintf(stderr, "Insufficient buffer memory on %s\\n",
             "QWE"); //          dev_name);
+    printf("vidio_v4l_raw_device::ERROR req.count\n");
     exit(EXIT_FAILURE);
   }
 
@@ -465,6 +513,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     buf.index = i;
 
     if (-1 == ioctl(m_fd, VIDIOC_QUERYBUF, &buf)) {
+      printf("vidio_v4l_raw_device::ERROR VIDIOC_QUERYBUF %d\n", errno);
       return 0; // TODO
       //  errno_exit("VIDIOC_QUERYBUF");
     }
@@ -480,6 +529,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     if (MAP_FAILED == m_buffers[i].start) {
       int e = errno;
       (void) e;
+      printf("vidio_v4l_raw_device::ERROR mmap\n");
       return 0; // TODO
       //errno_exit("mmap");
     }
@@ -495,6 +545,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     buf.index = (__u32) i;
 
     if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
+      printf("vidio_v4l_raw_device::ERROR VIDIOC_QBUF\n");
       return 0; // TODO
     }
   }
@@ -503,12 +554,15 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
 
   v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   if (-1 == ioctl(m_fd, VIDIOC_STREAMON, &type)) {
+    printf("vidio_v4l_raw_device::ERROR VIDIOC_STREAMON\n");
     return 0; // TODO
   }
 
   //FILE* fh = fopen("/home/farindk/out.bin", "wb");
 
   m_capturing_active = true;
+
+  printf("vidio_v4l_raw_device::before loop\n");
 
   int cnt = 0;
   while (true || m_capturing_active) {
@@ -591,6 +645,9 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
         frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
                                     (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
+        break;
+      default:
+        printf("invalid pixel format\n");
         break;
     }
 
@@ -793,6 +850,7 @@ vidio_error* vidio_input_device_v4l::start_capturing()
     return 0; // TODO
   }
 
+  printf("output queue size: %zu\n", m_frame_queue.size());
   m_capturing_thread = std::thread(&vidio_v4l_raw_device::start_capturing_blocking, m_active_device, this);
 
   //m_active_device->start_capturing_blocking(callback);
@@ -806,6 +864,18 @@ void vidio_input_device_v4l::stop_capturing()
   m_active_device->stop_capturing();
   if (m_capturing_thread.joinable()) {
     m_capturing_thread.join();
+
+    // clear all pending frames in queue
+
+    /*
+    for (auto* frame : m_frame_queue) {
+      delete frame;
+    }
+
+    m_frame_queue.clear();
+    */
+
+    printf("nFrames in queue after stopping: %zu\n", m_frame_queue.size());
 
     send_callback_message(vidio_input_message_end_of_stream);
   }

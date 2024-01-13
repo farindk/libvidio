@@ -184,6 +184,8 @@ enum vidio_pixel_format_class
   vidio_pixel_format_class_H265 = 5
 };
 
+LIBVIDIO_API void vidio_video_format_release(const struct vidio_video_format*);
+
 // Do not release the returned string.
 LIBVIDIO_API const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format);
 
@@ -201,6 +203,11 @@ LIBVIDIO_API vidio_pixel_format_class
 vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format);
 
 LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
+
+// If JSON has not been compiled in, NULL is returned.
+LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format);
+
+LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString);
 
 
 /**
@@ -224,8 +231,6 @@ vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_numbe
  * @param also_free_formats If set to 'false', only the list is released, but not the format objects listed.
  */
 LIBVIDIO_API void vidio_video_formats_free_list(const struct vidio_video_format* const* format_list, int also_free_formats);
-
-LIBVIDIO_API void vidio_video_format_release(const struct vidio_video_format*);
 
 
 // === Video Inputs ===

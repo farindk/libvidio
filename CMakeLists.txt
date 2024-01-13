@@ -59,6 +59,8 @@ LIST(APPEND CMAKE_MODULE_PATH "${PROJECT_SOURCE_DIR}/cmake/modules")
 
 option(WITH_VIDEO4LINUX2 "Include Video4Linux2 backend" ON)
 
+option(WITH_JSON "Enable JSON serialization" ON)
+
 # ffmpeg
 
 option(WITH_FFMPEG "FFMPEG decoders" ON)
