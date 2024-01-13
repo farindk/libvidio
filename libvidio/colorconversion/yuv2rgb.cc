@@ -69,5 +69,6 @@ vidio_frame* yuyv_to_rgb8(const vidio_frame* input)
     }
   }
 
+  out_frame->copy_metadata_from(input);
   return out_frame;
 }

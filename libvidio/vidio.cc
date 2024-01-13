@@ -207,6 +207,11 @@ const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame* f, vidio_
   return f->get_plane(c, stride);
 }
 
+uint64_t vidio_frame_get_timestamp_us(const vidio_frame* f)
+{
+  return f->get_timestamp_us();
+}
+
 
 const struct vidio_video_format* const*
 vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number)

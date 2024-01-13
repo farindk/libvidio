@@ -24,6 +24,7 @@
 #include <libvidio/vidio.h>
 #include <libvidio/vidio_frame.h>
 #include <deque>
+#include <mutex>
 
 
 struct vidio_format_converter
@@ -38,6 +39,8 @@ public:
   virtual void push(const vidio_frame* in) = 0;
 
   vidio_frame* pull() {
+    std::unique_lock<std::mutex> lock(m_mutex);
+
     if (m_output_queue.empty()) {
       return nullptr;
     }
@@ -51,11 +54,15 @@ public:
   static vidio_format_converter* create(vidio_pixel_format in, vidio_pixel_format out);
 
 private:
+  mutable std::mutex m_mutex;
   std::deque<vidio_frame*> m_output_queue;
 
 protected:
   // derived classes should call this to deposit the decoded frames
-  void push_decoded_frame(vidio_frame* f) { m_output_queue.push_back(f); }
+  void push_decoded_frame(vidio_frame* f) {
+    std::unique_lock<std::mutex> lock(m_mutex);
+    m_output_queue.push_back(f);
+  }
 
   vidio_format_converter() = default;
 };

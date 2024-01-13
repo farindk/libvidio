@@ -201,3 +201,9 @@ void vidio_frame::copy_raw_plane(vidio_color_channel channel, const void* mem, s
            plane.w * bytes_per_pixel);
   }
 }
+
+
+void vidio_frame::copy_metadata_from(const vidio_frame* source)
+{
+  m_timestamp_us = source->get_timestamp_us();
+}

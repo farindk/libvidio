@@ -85,7 +85,7 @@ public:
 
   vidio_error* start_capturing_blocking(struct vidio_input_device_v4l*);
 
-  void stop_capturing() { m_capturing_active = false; }
+  void stop_capturing();
 
   vidio_error* open();
 
@@ -128,6 +128,8 @@ private:
   vidio_pixel_format m_capture_vidio_pixel_format;
   uint32_t m_capture_width;
   uint32_t m_capture_height;
+
+  std::mutex m_mutex_loop_control;
 
   struct buffer {
     void   *start;

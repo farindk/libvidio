@@ -60,6 +60,14 @@ public:
 
   const uint8_t* get_plane(vidio_color_channel, int* stride) const;
 
+  // --- metadata ---
+
+  void copy_metadata_from(const vidio_frame* source);
+
+  void set_timestamp_us(uint64_t ts) { m_timestamp_us = ts; }
+
+  uint64_t get_timestamp_us() const { return m_timestamp_us; }
+
 private:
   int m_width, m_height;
   vidio_pixel_format m_format;
@@ -76,6 +84,8 @@ private:
   };
 
   std::map<vidio_color_channel, Plane> m_planes;
+
+  uint64_t m_timestamp_us;
 
   void get_chroma_size(int& cw, int& ch) const;
 

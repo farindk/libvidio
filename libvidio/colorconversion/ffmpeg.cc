@@ -98,7 +98,14 @@ void vidio_format_converter_ffmpeg::push(const vidio_frame* input)
   // decode frame
 
   res = avcodec_send_packet(m_context, pkt);
+  if (res != 0) {
+    return;
+  }
+
   res = avcodec_receive_frame(m_context, m_decodedFrame);
+  if (res != 0) {
+    return;
+  }
 
   av_packet_free(&pkt);
 
@@ -107,7 +114,7 @@ void vidio_format_converter_ffmpeg::push(const vidio_frame* input)
   vidio_frame* out_frame = convert_avframe_to_vidio_frame(m_context->pix_fmt, m_decodedFrame,
                                                           m_output_format);
 
-
+  out_frame->copy_metadata_from(input);
   push_decoded_frame(out_frame);
 }
 
@@ -230,6 +237,7 @@ void vidio_format_converter_swscale::push(const vidio_frame* in_frame)
             0, h,
             out_data, out_stride);
 
+  out_frame->copy_metadata_from(in_frame);
   push_decoded_frame(out_frame);
 }
 

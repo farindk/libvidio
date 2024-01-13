@@ -151,6 +151,8 @@ LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, vidio_color_chan
 
 LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame*, vidio_color_channel, int* stride);
 
+LIBVIDIO_API uint64_t vidio_frame_get_timestamp_us(const vidio_frame*);
+
 
 // === Format Conversion ===
 

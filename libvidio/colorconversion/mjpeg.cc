@@ -65,6 +65,7 @@ vidio_frame* mjpeg_to_rgb8_small(const vidio_frame* input)
     }
   }
 
+  out_frame->copy_metadata_from(input);
   return out_frame;
 }
 
@@ -149,5 +150,6 @@ vidio_frame* mjpeg_to_rgb8_ffmpeg(const vidio_frame* input)
       out[y * out_stride + 3 * x + 2] = clip8(1.164 * yy + 2.017 * u);
     }
 
+  out_frame->copy_metadata_from(input);
   return out_frame;
 }

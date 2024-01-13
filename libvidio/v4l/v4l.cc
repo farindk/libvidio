@@ -511,7 +511,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
   m_capturing_active = true;
 
   int cnt = 0;
-  while (m_capturing_active) {
+  while (true || m_capturing_active) {
     cnt++;
 
     fd_set fds;
@@ -523,12 +523,15 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     tv.tv_sec = 2;
     tv.tv_usec = 0;
 
-    int r = select(m_fd + 1, &fds, nullptr, nullptr, &tv);
-    if (r == -1) {
-      if (errno == EINTR)
-        continue;
-      else {
-        return 0; // TODO
+    if (m_capturing_active) {
+      int r = select(m_fd + 1, &fds, nullptr, nullptr, &tv);
+      if (r == -1) {
+        if (errno == EINTR)
+          continue;
+        else {
+          printf("vidio_v4l_raw_device::ERROR select\n");
+          return 0; // TODO
+        }
       }
     }
 
@@ -536,11 +539,23 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
 
     v4l2_buffer buf{};
 
-    buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-    buf.memory = V4L2_MEMORY_MMAP;
+    m_mutex_loop_control.lock();
 
-    if (-1 == ioctl(m_fd, VIDIOC_DQBUF, &buf)) {
-      return 0; // TODO
+    if (m_capturing_active) {
+      buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+      buf.memory = V4L2_MEMORY_MMAP;
+
+      ret = ioctl(m_fd, VIDIOC_DQBUF, &buf);
+      m_mutex_loop_control.unlock();
+
+      if (ret == -1) {
+        printf("vidio_v4l_raw_device::ERROR VIDIOC_DQBUF %d\n", errno);
+        return 0; // TODO
+      }
+    }
+    else {
+      m_mutex_loop_control.unlock();
+      break;
     }
 
     printf("%d : got %p %d at %d.%d:%d %ld - #%d\n", cnt, m_buffers[buf.index].start, buf.bytesused,
@@ -549,6 +564,11 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     //fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
 
     const buffer& buffer = m_buffers[buf.index];
+
+    // TODO: alternatively to copying the data into the vidio_frame, we could also offer a mode in which
+    //  the vidio_frame only wraps the v4l2 buffer and this is passed directly to the client.
+    //  The client code must be very quick, but it would eliminate one copy.
+    //  Easiest implementation would be when the "add_plane()" functions had a mode switch (copy or wrap).
 
     auto* frame = new vidio_frame();
     switch (m_capture_pixel_format) {
@@ -574,29 +594,56 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
         break;
     }
 
+    uint64_t timestamp = buf.timestamp.tv_sec * 1000000 + buf.timestamp.tv_usec;
+    frame->set_timestamp_us(timestamp);
+
     input_device->push_frame_into_queue(frame);
 
     // --- re-queue buffer
 
     if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
+      printf("vidio_v4l_raw_device::ERROR VIDIOC_QBUF\n");
       return 0; // TODO
     }
   }
 
+  // release capturing buffers
 
-  type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
-  if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type)) {
-    return 0; // TODO
+  for (auto& buffer : m_buffers) {
+    munmap(buffer.start, buffer.length);
   }
 
-  for (__u32 i = 0 /**/; i < req.count; i++) {
-    munmap(m_buffers[i].start, m_buffers[i].length);
-  }
-
-  //close();
-  //fclose(fh);
+  m_buffers.clear();
 
   return nullptr;
+}
+
+
+void vidio_v4l_raw_device::stop_capturing()
+{
+  if (m_capturing_active) {
+    std::unique_lock<std::mutex> lock(m_mutex_loop_control);
+
+    m_capturing_active = false;
+
+    v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type)) {
+      printf("vidio_v4l_raw_device::ERROR VIDIOC_STREAMOFF\n");
+      return; // 0; // TODO
+    }
+
+
+    // release buffers (otherwise, S_FMT would return EBUSY
+
+    v4l2_requestbuffers req{};
+    req.count = 0;
+    req.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
+    req.memory = V4L2_MEMORY_MMAP;
+
+    if (-1 == ioctl(m_fd, VIDIOC_REQBUFS, &req)) {
+      printf("REQBUFF=0 error %d\n", errno);
+    }
+  }
 }
 
 
