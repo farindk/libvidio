@@ -204,10 +204,17 @@ vidio_video_format_get_pixel_format_class(const struct vidio_video_format* forma
 
 LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
 
-// If JSON has not been compiled in, NULL is returned.
-LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format);
+enum vidio_serialization_format
+{
+  vidio_serialization_format_unknown = 0,
+  vidio_serialization_format_json = 1,
+  vidio_serialization_format_keyvalue = 2
+};
 
-LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString);
+// If JSON has not been compiled in, NULL is returned.
+LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format, vidio_serialization_format);
+
+LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString, vidio_serialization_format);
 
 
 /**
@@ -267,6 +274,29 @@ vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_nu
 LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device* const* devices, int also_free_devices);
 
 LIBVIDIO_API void vidio_input_device_release(const struct vidio_input_device* device);
+
+// If JSON has not been compiled in, NULL is returned.
+LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, vidio_serialization_format);
+
+enum vidio_device_match
+{
+  vidio_device_match_none = 0,
+  vidio_device_match_approx = 1,
+  vidio_device_match_exact = 2
+};
+
+/**
+ * Find the input device from the list of devices that matches the serialized spec.
+ * If the spec is a file input or generated input, the vidio_input is created from scratch (does not have to be in the input list).
+ *
+ * @param serializedString
+ * @return
+ */
+LIBVIDIO_API vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const*,
+                                                           const char* serializedString,
+                                                           vidio_serialization_format,
+                                                           enum vidio_device_match* out_opt_matchscore);
+
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
 

@@ -25,6 +25,7 @@
 #include "libvidio/vidio_video_format.h"
 #include "libvidio/vidio_format_converter.h"
 #include "libvidio/colorconversion/converter.h"
+#include "libvidio/v4l/v4l.h"
 #include <cassert>
 #include <cstring>
 
@@ -152,6 +153,25 @@ void vidio_input_devices_free_list(const struct vidio_input_device* const* out_d
 void vidio_input_device_release(const struct vidio_input_device* device)
 {
   delete device;
+}
+
+
+const char* vidio_input_serialize(const struct vidio_input* input, vidio_serialization_format serialformat)
+{
+  return make_vidio_string(input->serialize(serialformat));
+}
+
+vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* in_devices,
+                                              const char* serializedString,
+                                              vidio_serialization_format serialformat,
+                                              enum vidio_device_match* out_opt_matchscore)
+{
+  std::vector<vidio_input*> devices;
+  for (int i=0; in_devices[i]; i++) {
+    devices.push_back(in_devices[i]);
+  }
+
+  return vidio_input::find_matching_device(devices, serializedString, serialformat);
 }
 
 
@@ -292,15 +312,17 @@ const char* vidio_video_format_get_user_description(const struct vidio_video_for
 }
 
 #if WITH_JSON
-const char* vidio_video_format_serialize(const struct vidio_video_format* format)
+
+const char* vidio_video_format_serialize(const struct vidio_video_format* format, vidio_serialization_format serialformat)
 {
-  return make_vidio_string(format->serialize());
+  return make_vidio_string(format->serialize(serialformat));
 }
 
-const vidio_video_format* vidio_video_format_deserialize(const char* serializedString)
+const vidio_video_format* vidio_video_format_deserialize(const char* serializedString, vidio_serialization_format serialformat)
 {
-  return vidio_video_format::deserialize(serializedString);
+  return vidio_video_format::deserialize(serializedString, serialformat);
 }
+
 #endif
 
 void vidio_video_formats_free_list(const struct vidio_video_format* const* list, int also_free_formats)
@@ -331,7 +353,7 @@ vidio_error* vidio_input_configure_capture(struct vidio_input* input,
 
 
 void vidio_input_set_message_callback(struct vidio_input* input,
-                                      void (*callback)(enum vidio_input_message, void* userData), void* userData)
+                                      void (* callback)(enum vidio_input_message, void* userData), void* userData)
 {
   input->set_message_callback(callback, userData);
 }

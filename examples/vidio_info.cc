@@ -202,6 +202,14 @@ int main(int argc, char** argv)
         converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
                                            vidio_pixel_format_RGB8);
 
+        const char* devStr = vidio_input_serialize((vidio_input*)selected_device, vidio_serialization_format_json);
+        std::cout << "DEVICE:\n" << devStr << "\n";
+        vidio_free_string(devStr);
+
+        const char* fmtStr = vidio_video_format_serialize(selected_format, vidio_serialization_format_json);
+        std::cout << "FORMAT:\n" << fmtStr << "\n";
+        vidio_free_string(fmtStr);
+
         vidio_video_formats_free_list(formats, true);
         break;
       }
@@ -218,8 +226,6 @@ int main(int argc, char** argv)
   vidio_input_start_capturing(selected_input);
 
   storage.run();
-
-  //vidio_input_stop_capturing(selected_input);
 
   vidio_input_devices_free_list(devices, true);
   vidio_format_converter_release(converter);

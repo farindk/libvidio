@@ -63,7 +63,7 @@ public:
   vidio_pixel_format get_pixel_format() const override;
 
 #if WITH_JSON
-  std::string serialize() const override;
+  std::string serialize(vidio_serialization_format) const override;
 #endif
 
 private:
@@ -85,6 +85,8 @@ public:
   std::string get_display_name() const { return {(char*) &m_caps.card[0]}; }
 
   const v4l2_capability& get_v4l_capabilities() const { return m_caps; }
+
+  std::string get_device_file() const { return m_device_file; }
 
   bool has_video_capture_capability() const;
 
@@ -180,6 +182,14 @@ public:
   const vidio_frame* peek_next_frame() const override;
 
   void pop_next_frame() override;
+
+  std::string serialize(vidio_serialization_format serialformat) const override;
+
+#if WITH_JSON
+  static vidio_input_device_v4l* find_matching_device(const std::vector<vidio_input*>& inputs, const nlohmann::json& json);
+
+  int spec_match_score(const std::string& businfo, const std::string& card, const std::string& device_file) const;
+#endif
 
 private:
   std::vector<vidio_v4l_raw_device*> m_v4l_capture_devices;

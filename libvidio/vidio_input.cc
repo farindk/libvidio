@@ -22,10 +22,34 @@
 #include <vector>
 
 #if WITH_VIDEO4LINUX2
-
 #include "v4l/v4l.h"
-
 #endif
+
+#if WITH_JSON
+#include "nlohmann/json.hpp"
+#endif
+
+
+vidio_input_device_v4l* vidio_input::find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serializedString,
+                                                          vidio_serialization_format serialformat)
+{
+#if WITH_JSON
+  if (serialformat == vidio_serialization_format_json) {
+    nlohmann::json json = nlohmann::json::parse(serializedString);
+
+    if (!json.contains("class")) {
+      return nullptr;
+    }
+
+    std::string cl = json["class"];
+    if (cl == "v4l2") {
+      return vidio_input_device_v4l::find_matching_device(inputs, json);
+    }
+  }
+#endif
+
+  return nullptr;
+}
 
 
 std::vector<vidio_input_device*> vidio_input_device::list_input_devices(const struct vidio_input_device_filter* filter)
@@ -41,3 +65,4 @@ std::vector<vidio_input_device*> vidio_input_device::list_input_devices(const st
 
   return devices;
 }
+

@@ -20,6 +20,7 @@
 
 #include "libvidio/v4l/v4l.h"
 #include "libvidio/vidio_frame.h"
+#include "libvidio/util/key_value_store.h"
 #include <dirent.h>
 #include <cstdio>
 #include <cstring>
@@ -89,6 +90,7 @@ vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
 }
 
 #if WITH_JSON
+
 vidio_video_format_v4l::vidio_video_format_v4l(const nlohmann::json& json)
 {
   // v4l2_fmtdesc
@@ -109,27 +111,38 @@ vidio_video_format_v4l::vidio_video_format_v4l(const nlohmann::json& json)
   m_framerate.numerator = json["framerate_numerator"];
   m_framerate.denominator = json["framerate_denominator"];
 }
+
 #endif
 
-#if WITH_JSON
-std::string vidio_video_format_v4l::serialize() const
+std::string vidio_video_format_v4l::serialize(vidio_serialization_format serialformat) const
 {
-  nlohmann::json json{
-      {"class", "v4l2"},
-      {"format_type", m_format.type},
-      {"format_flags", m_format.flags},
-      {"format_pixelformat", m_format.pixelformat},
-      {"format_mbus_code", m_format.mbus_code},
-      {"format_description", m_format.description},
-      {"width", m_width},
-      {"height", m_height},
-      {"framerate_numerator", m_framerate.numerator},
-      {"framerate_denominator", m_framerate.denominator}
-  };
+  if (serialformat == vidio_serialization_format_json) {
+#if WITH_JSON
+    nlohmann::json json{
+        {"class",                 "v4l2"},
+        {"format_type",           m_format.type},
+        {"format_flags",          m_format.flags},
+        {"format_pixelformat",    m_format.pixelformat},
+        {"format_mbus_code",      m_format.mbus_code},
+        {"format_description",    (const char*) (m_format.description)},
+        {"width",                 m_width},
+        {"height",                m_height},
+        {"framerate_numerator",   m_framerate.numerator},
+        {"framerate_denominator", m_framerate.denominator}
+    };
 
-  return json.dump();
-}
+    return json.dump();
 #endif
+  }
+
+  if (serialformat == vidio_serialization_format_keyvalue) {
+    key_value_store store;
+    // TODO
+  }
+
+  return {};
+}
+
 
 vidio_pixel_format vidio_video_format_v4l::get_pixel_format() const
 {
@@ -921,4 +934,75 @@ void vidio_input_device_v4l::push_frame_into_queue(const vidio_frame* f)
     send_callback_message(vidio_input_message_input_overflow);
   else
     send_callback_message(vidio_input_message_new_frame);
+}
+
+
+std::string vidio_input_device_v4l::serialize(vidio_serialization_format serialformat) const
+{
+#if WITH_JSON
+  nlohmann::json json{
+      {"class", "v4l2"},
+      {"bus_info", m_v4l_capture_devices[0]->get_bus_info()},
+      {"card", (const char*) (m_v4l_capture_devices[0]->get_v4l_capabilities().card)},
+      {"device_file", m_v4l_capture_devices[0]->get_device_file()}
+  };
+
+  return json.dump();
+#endif
+}
+
+
+vidio_input_device_v4l* vidio_input_device_v4l::find_matching_device(const std::vector<vidio_input*>& inputs, const nlohmann::json& json)
+{
+  std::string bus_info = json["bus_info"];
+  std::string card = json["card"];
+  std::string device_file = json["device_file"];
+
+  int maxScore = 0;
+  vidio_input_device_v4l* bestDevice = nullptr;
+
+  for (auto* input : inputs) {
+    if (auto inputv4l = dynamic_cast<vidio_input_device_v4l*>(input)) {
+      int score = inputv4l->spec_match_score(bus_info, card, device_file);
+      if (score > maxScore) {
+        maxScore = score;
+        bestDevice = inputv4l;
+      }
+    }
+  }
+
+  return bestDevice;
+}
+
+
+int vidio_input_device_v4l::spec_match_score(const std::string& businfo, const std::string& card, const std::string& device_file) const
+{
+  // full match
+
+  for (const auto& rawdevice : m_v4l_capture_devices) {
+    if (rawdevice->get_bus_info() == businfo &&
+        (const char*)(rawdevice->get_v4l_capabilities().card) == card &&
+        rawdevice->get_device_file() == device_file) {
+      return 10;
+    }
+  }
+
+  // same bus-info and device name
+
+  for (const auto& rawdevice : m_v4l_capture_devices) {
+    if (rawdevice->get_bus_info() == businfo ||
+        (const char*)(rawdevice->get_v4l_capabilities().card) == card) {
+      return 5;
+    }
+  }
+
+  // same device name
+
+  for (const auto& rawdevice : m_v4l_capture_devices) {
+    if ((const char*)(rawdevice->get_v4l_capabilities().card) == card) {
+      return 1;
+    }
+  }
+
+  return 0;
 }

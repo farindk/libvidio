@@ -42,11 +42,9 @@ public:
 
   virtual vidio_pixel_format get_pixel_format() const = 0;
 
-#if WITH_JSON
-  virtual std::string serialize() const = 0;
-#endif
+  virtual std::string serialize(vidio_serialization_format) const = 0;
 
-  static const vidio_video_format* deserialize(const std::string&);
+  static const vidio_video_format* deserialize(const std::string&, vidio_serialization_format);
 };
 
 
