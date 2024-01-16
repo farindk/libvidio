@@ -25,6 +25,9 @@
 #include <cinttypes>
 #include <string>
 
+#include <vector>
+
+
 struct vidio_video_format
 {
 public:
@@ -44,7 +47,16 @@ public:
 
   virtual std::string serialize(vidio_serialization_format) const = 0;
 
+  virtual int format_match_score(const vidio_video_format* f) const = 0;
+
   static const vidio_video_format* deserialize(const std::string&, vidio_serialization_format);
+
+  static const vidio_video_format* find_best_match(const std::vector<const vidio_video_format*>& formats,
+                                                   const vidio_video_format* requested_format,
+                                                   vidio_device_match* out_score);
+
+protected:
+  int generic_format_match_score(const vidio_video_format* f) const;
 };
 
 

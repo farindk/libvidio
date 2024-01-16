@@ -62,6 +62,8 @@ public:
 
   vidio_pixel_format get_pixel_format() const override;
 
+  int format_match_score(const vidio_video_format* f) const override;
+
 #if WITH_JSON
   std::string serialize(vidio_serialization_format) const override;
 #endif

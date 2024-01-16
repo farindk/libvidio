@@ -135,6 +135,15 @@ enum vidio_channel_format
   vidio_channel_format_compressed_H265 = 502
 };
 
+
+enum vidio_device_match
+{
+  vidio_device_match_none = 0,
+  vidio_device_match_approx = 50,
+  vidio_device_match_exact = 100
+};
+
+
 struct vidio_frame;
 
 LIBVIDIO_API void vidio_frame_release(const vidio_frame*);
@@ -211,10 +220,17 @@ enum vidio_serialization_format
   vidio_serialization_format_keyvalue = 2
 };
 
+// TODO: would it make sense to add a vidio_input* to the serialize functions? Can the format always be independent from the device/input?
+// -> We need the vidio_input parameter so that
+
 // If JSON has not been compiled in, NULL is returned.
 LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format, vidio_serialization_format);
 
 LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString, vidio_serialization_format);
+
+LIBVIDIO_API const vidio_video_format* vidio_video_format_find_best_match(const vidio_video_format*const* format_list, int nFormats,
+                                                                          const vidio_video_format* requested_format,
+                                                                          enum vidio_device_match* out_score);
 
 
 /**
@@ -278,21 +294,15 @@ LIBVIDIO_API void vidio_input_device_release(const struct vidio_input_device* de
 // If JSON has not been compiled in, NULL is returned.
 LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, vidio_serialization_format);
 
-enum vidio_device_match
-{
-  vidio_device_match_none = 0,
-  vidio_device_match_approx = 1,
-  vidio_device_match_exact = 2
-};
-
 /**
  * Find the input device from the list of devices that matches the serialized spec.
  * If the spec is a file input or generated input, the vidio_input is created from scratch (does not have to be in the input list).
  *
+ * @param nDevices number of devices in 'devices'. If the input list is NULL-terminated, this can be set to '-1'.
  * @param serializedString
  * @return
  */
-LIBVIDIO_API vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const*,
+LIBVIDIO_API vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* devices, int nDevices,
                                                            const char* serializedString,
                                                            vidio_serialization_format,
                                                            enum vidio_device_match* out_opt_matchscore);

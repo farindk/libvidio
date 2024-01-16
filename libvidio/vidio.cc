@@ -161,14 +161,21 @@ const char* vidio_input_serialize(const struct vidio_input* input, vidio_seriali
   return make_vidio_string(input->serialize(serialformat));
 }
 
-vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* in_devices,
+vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* in_devices, int nDevices,
                                               const char* serializedString,
                                               vidio_serialization_format serialformat,
                                               enum vidio_device_match* out_opt_matchscore)
 {
   std::vector<vidio_input*> devices;
-  for (int i=0; in_devices[i]; i++) {
-    devices.push_back(in_devices[i]);
+  if (nDevices < 0) {
+    for (int i = 0; in_devices[i]; i++) {
+      devices.push_back(in_devices[i]);
+    }
+  }
+  else {
+    for (int i = 0; i < nDevices; i++) {
+      devices.push_back(in_devices[i]);
+    }
   }
 
   return vidio_input::find_matching_device(devices, serializedString, serialformat);
@@ -324,6 +331,26 @@ const vidio_video_format* vidio_video_format_deserialize(const char* serializedS
 }
 
 #endif
+
+const vidio_video_format* vidio_video_format_find_best_match(const vidio_video_format* const* in_formats, int nFormats,
+                                                             const vidio_video_format* requested_format,
+                                                             enum vidio_device_match* out_score)
+{
+  std::vector<const vidio_video_format*> formatList;
+  if (nFormats < 0) {
+    for (int i = 0; in_formats[i]; i++) {
+      formatList.push_back(in_formats[i]);
+    }
+  }
+  else {
+    for (int i = 0; i < nFormats; i++) {
+      formatList.push_back(in_formats[i]);
+    }
+  }
+
+  return vidio_video_format::find_best_match(formatList, requested_format, out_score);
+}
+
 
 void vidio_video_formats_free_list(const struct vidio_video_format* const* list, int also_free_formats)
 {

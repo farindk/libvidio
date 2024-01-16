@@ -150,6 +150,20 @@ vidio_pixel_format vidio_video_format_v4l::get_pixel_format() const
 }
 
 
+int vidio_video_format_v4l::format_match_score(const vidio_video_format* f) const
+{
+  auto* format = dynamic_cast<const vidio_video_format*>(f);
+  if (format == nullptr) {
+    return generic_format_match_score(f);
+  }
+
+  // actually, there is no special handling for this format type (yet)
+
+  return generic_format_match_score(f);
+}
+
+
+
 bool vidio_v4l_raw_device::query_device(const char* filename)
 {
   m_fd = ::open(filename, O_RDWR);
