@@ -93,22 +93,22 @@ enum vidio_error_code
   vidio_error_code_cannot_free_capturing_buffers = 13
 };
 
-LIBVIDIO_API void vidio_error_release(const vidio_error*);
+LIBVIDIO_API void vidio_error_release(const struct vidio_error*);
 
-LIBVIDIO_API vidio_error_code vidio_error_get_code(const vidio_error*);
-
-// free with vidio_free_string()
-LIBVIDIO_API const char* vidio_error_get_message(const vidio_error*);
+LIBVIDIO_API vidio_error_code vidio_error_get_code(const struct vidio_error*);
 
 // free with vidio_free_string()
-LIBVIDIO_API const char* vidio_error_get_message_template(const vidio_error*);
+LIBVIDIO_API const char* vidio_error_get_message(const struct vidio_error*);
 
 // free with vidio_free_string()
-LIBVIDIO_API const char* vidio_error_get_argument(const vidio_error*, int n);
+LIBVIDIO_API const char* vidio_error_get_message_template(const struct vidio_error*);
 
-LIBVIDIO_API int vidio_error_get_number_of_arguments(const vidio_error*);
+// free with vidio_free_string()
+LIBVIDIO_API const char* vidio_error_get_argument(const struct vidio_error*, int n);
 
-LIBVIDIO_API const vidio_error* vidio_error_get_reason(const vidio_error*);
+LIBVIDIO_API int vidio_error_get_number_of_arguments(const struct vidio_error*);
+
+LIBVIDIO_API const struct vidio_error* vidio_error_get_reason(const struct vidio_error*);
 
 
 
@@ -161,39 +161,39 @@ enum vidio_device_match
 
 struct vidio_frame;
 
-LIBVIDIO_API void vidio_frame_release(const vidio_frame*);
+LIBVIDIO_API void vidio_frame_release(const struct vidio_frame*);
 
-LIBVIDIO_API int vidio_frame_get_width(const vidio_frame*);
+LIBVIDIO_API int vidio_frame_get_width(const struct vidio_frame*);
 
-LIBVIDIO_API int vidio_frame_get_height(const vidio_frame*);
+LIBVIDIO_API int vidio_frame_get_height(const struct vidio_frame*);
 
-LIBVIDIO_API enum vidio_pixel_format vidio_frame_get_pixel_format(const vidio_frame*);
+LIBVIDIO_API enum vidio_pixel_format vidio_frame_get_pixel_format(const struct vidio_frame*);
 
-LIBVIDIO_API int vidio_frame_has_color_plane(const vidio_frame*, vidio_color_channel);
+LIBVIDIO_API int vidio_frame_has_color_plane(const struct vidio_frame*, enum vidio_color_channel);
 
-LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, vidio_color_channel, int* stride);
+LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, enum vidio_color_channel, int* stride);
 
-LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const vidio_frame*, vidio_color_channel, int* stride);
+LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const struct vidio_frame*, enum vidio_color_channel, int* stride);
 
-LIBVIDIO_API uint64_t vidio_frame_get_timestamp_us(const vidio_frame*);
+LIBVIDIO_API uint64_t vidio_frame_get_timestamp_us(const struct vidio_frame*);
 
 
 // === Format Conversion ===
 
-LIBVIDIO_API vidio_frame* vidio_frame_convert(const vidio_frame*, vidio_pixel_format);
+LIBVIDIO_API struct vidio_frame* vidio_frame_convert(const struct vidio_frame*, enum vidio_pixel_format);
 
 
 struct vidio_format_converter;
 
-LIBVIDIO_API vidio_format_converter* vidio_create_converter(vidio_pixel_format from, vidio_pixel_format to);
+LIBVIDIO_API struct vidio_format_converter* vidio_create_converter(enum vidio_pixel_format from, enum vidio_pixel_format to);
 
-LIBVIDIO_API void vidio_format_converter_release(vidio_format_converter*);
+LIBVIDIO_API void vidio_format_converter_release(struct vidio_format_converter*);
 
-LIBVIDIO_API vidio_frame* vidio_format_converter_convert_uncompressed(vidio_format_converter*, const vidio_frame*);
+LIBVIDIO_API struct vidio_frame* vidio_format_converter_convert_uncompressed(struct vidio_format_converter*, const struct vidio_frame*);
 
-LIBVIDIO_API void vidio_format_converter_push_compressed(vidio_format_converter*, const vidio_frame*);
+LIBVIDIO_API void vidio_format_converter_push_compressed(struct vidio_format_converter*, const struct vidio_frame*);
 
-LIBVIDIO_API vidio_frame* vidio_format_converter_pull_decompressed(vidio_format_converter*);
+LIBVIDIO_API struct vidio_frame* vidio_format_converter_pull_decompressed(struct vidio_format_converter*);
 
 
 // === Video Format ===
@@ -213,7 +213,7 @@ LIBVIDIO_API void vidio_video_format_release(const struct vidio_video_format*);
 // Do not release the returned string.
 LIBVIDIO_API const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format);
 
-LIBVIDIO_API vidio_pixel_format vidio_video_format_get_pixel_format(const struct vidio_video_format* format);
+LIBVIDIO_API enum vidio_pixel_format vidio_video_format_get_pixel_format(const struct vidio_video_format* format);
 
 struct vidio_video_format;
 
@@ -221,9 +221,9 @@ LIBVIDIO_API uint32_t vidio_video_format_get_width(const struct vidio_video_form
 
 LIBVIDIO_API uint32_t vidio_video_format_get_height(const struct vidio_video_format* format);
 
-LIBVIDIO_API vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
+LIBVIDIO_API struct vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
 
-LIBVIDIO_API vidio_pixel_format_class
+LIBVIDIO_API enum vidio_pixel_format_class
 vidio_video_format_get_pixel_format_class(const struct vidio_video_format* format);
 
 LIBVIDIO_API const char* vidio_video_format_get_user_description(const struct vidio_video_format* format);
@@ -239,13 +239,13 @@ enum vidio_serialization_format
 // -> We need the vidio_input parameter so that
 
 // If JSON has not been compiled in, NULL is returned.
-LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format, vidio_serialization_format);
+LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_format* format, enum vidio_serialization_format);
 
-LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString, vidio_serialization_format);
+LIBVIDIO_API const struct vidio_video_format* vidio_video_format_deserialize(const char* serializedString, enum vidio_serialization_format);
 
-LIBVIDIO_API const vidio_video_format* vidio_video_format_find_best_match(const vidio_video_format* const* format_list, int nFormats,
-                                                                          const vidio_video_format* requested_format,
-                                                                          enum vidio_device_match* out_score);
+LIBVIDIO_API const struct vidio_video_format* vidio_video_format_find_best_match(const struct vidio_video_format* const* format_list, int nFormats,
+                                                                                 const struct vidio_video_format* requested_format,
+                                                                                 enum vidio_device_match* out_score);
 
 
 /**
@@ -307,7 +307,7 @@ LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device*
 LIBVIDIO_API void vidio_input_device_release(const struct vidio_input_device* device);
 
 // If JSON has not been compiled in, NULL is returned.
-LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, vidio_serialization_format);
+LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, enum vidio_serialization_format);
 
 /**
  * Find the input device from the list of devices that matches the serialized spec.
@@ -317,10 +317,10 @@ LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, 
  * @param serializedString
  * @return
  */
-LIBVIDIO_API vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* devices, int nDevices,
-                                                           const char* serializedString,
-                                                           vidio_serialization_format,
-                                                           enum vidio_device_match* out_opt_matchscore);
+LIBVIDIO_API struct vidio_input* vidio_input_find_matching_device(struct vidio_input_device* const* devices, int nDevices,
+                                                                  const char* serializedString,
+                                                                  enum vidio_serialization_format,
+                                                                  enum vidio_device_match* out_opt_matchscore);
 
 
 LIBVIDIO_API const char* vidio_input_get_display_name(const struct vidio_input* input);
@@ -330,9 +330,9 @@ LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_i
 struct vidio_output_format;
 
 LIBVIDIO_API const vidio_error* vidio_input_configure_capture(struct vidio_input* input,
-                                                              const vidio_video_format* requested_format,
-                                                              const vidio_output_format*,
-                                                              const vidio_video_format** out_actual_format);
+                                                              const struct vidio_video_format* requested_format,
+                                                              const struct vidio_output_format*,
+                                                              const struct vidio_video_format** out_actual_format);
 
 struct vidio_frame;
 
@@ -340,11 +340,11 @@ struct vidio_frame;
 LIBVIDIO_API void vidio_input_set_message_callback(struct vidio_input* input,
                                                    void (*)(enum vidio_input_message, void* userData), void* userData);
 
-LIBVIDIO_API const vidio_error* vidio_input_start_capturing(struct vidio_input* input);
+LIBVIDIO_API const struct vidio_error* vidio_input_start_capturing(struct vidio_input* input);
 
-LIBVIDIO_API const vidio_error* vidio_input_stop_capturing(struct vidio_input* input);
+LIBVIDIO_API const struct vidio_error* vidio_input_stop_capturing(struct vidio_input* input);
 
-LIBVIDIO_API const vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
+LIBVIDIO_API const struct vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
 
 LIBVIDIO_API void vidio_input_pop_next_frame(struct vidio_input* input);
 }

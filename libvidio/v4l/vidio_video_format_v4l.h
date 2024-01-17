@@ -68,8 +68,4 @@ private:
   vidio_pixel_format_class m_format_class;
 };
 
-
-
-
-
 #endif //LIBVIDIO_VIDIO_VIDEO_FORMAT_V4L_H
