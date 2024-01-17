@@ -29,21 +29,19 @@ vidio_format_converter* converter = nullptr;
 
 bool save_frame(const vidio_frame* frame)
 {
-  std::cout << "callback\n";
-
   std::cout << "format: ";
   switch (vidio_frame_get_pixel_format(frame)) {
     case vidio_pixel_format_YUV422_YUYV:
-      std::cout << "YUYV\n";
+      std::cout << "YUYV ";
       break;
     case vidio_pixel_format_MJPEG:
-      std::cout << "MJPEG\n";
+      std::cout << "MJPEG ";
       break;
     case vidio_pixel_format_H264:
-      std::cout << "H264\n";
+      std::cout << "H264 ";
       break;
     default:
-      std::cout << "unknown\n";
+      std::cout << "unknown ";
       break;
   }
 
@@ -113,7 +111,8 @@ public:
         vidio_input_pop_next_frame(m_input);
 
         if (end) {
-          vidio_input_stop_capturing(m_input);
+          auto* err = vidio_input_stop_capturing(m_input);
+          vidio_error_release(err);
         }
       }
     }
@@ -182,8 +181,15 @@ int main(int argc, char** argv)
 
   const vidio_video_format* selected_format = nullptr;
   const vidio_input_device* selected_device = nullptr;
+  const vidio_error* err = nullptr;
 
-  const vidio_input_device* const* devices = vidio_list_input_devices(nullptr, nullptr);
+  vidio_input_device* const* devices;
+  err = vidio_list_input_devices(nullptr, &devices, nullptr);
+  if (err) {
+    show_err(err);
+    return 10;
+  }
+
   for (size_t i = 0; devices[i]; i++) {
     auto name = vidio_input_get_display_name((vidio_input*) devices[i]);
     printf("> %s\n", name);
@@ -213,8 +219,8 @@ int main(int argc, char** argv)
         selected_device = devices[i];
 
         const vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
-        auto* err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
-                                                  &actual_format);
+        err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
+                                            &actual_format);
         if (err) {
           show_err(err);
           return 10;
@@ -223,7 +229,7 @@ int main(int argc, char** argv)
         converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
                                            vidio_pixel_format_RGB8);
 
-        const char* devStr = vidio_input_serialize((vidio_input*)selected_device, vidio_serialization_format_json);
+        const char* devStr = vidio_input_serialize((vidio_input*) selected_device, vidio_serialization_format_json);
         std::cout << "DEVICE:\n" << devStr << "\n";
         vidio_free_string(devStr);
 
@@ -244,7 +250,8 @@ int main(int argc, char** argv)
   auto* selected_input = (vidio_input*) selected_device;
   StorageProcess storage(selected_input);
   vidio_input_set_message_callback(selected_input, message_callback, &storage);
-  vidio_input_start_capturing(selected_input);
+  err = vidio_input_start_capturing(selected_input);
+  vidio_error_release(err);
 
   storage.run();
 

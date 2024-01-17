@@ -52,15 +52,18 @@ vidio_input_device_v4l* vidio_input::find_matching_device(const std::vector<vidi
 }
 
 
-std::vector<vidio_input_device*> vidio_input_device::list_input_devices(const struct vidio_input_device_filter* filter)
+vidio_result<std::vector<vidio_input_device*>> vidio_input_device::list_input_devices(const struct vidio_input_device_filter* filter)
 {
   std::vector<vidio_input_device*> devices;
 
 #if WITH_VIDEO4LINUX2
-  std::vector<vidio_input_device_v4l*> devs;
-  devs = v4l_list_input_devices(filter);
+  vidio_result<std::vector<vidio_input_device_v4l*>> devsResult;
+  devsResult = v4l_list_input_devices(filter);
+  if (devsResult.error) {
+    return devsResult.error;
+  }
 
-  devices.insert(devices.end(), devs.begin(), devs.end());
+  devices.insert(devices.end(), devsResult.value.begin(), devsResult.value.end());
 #endif
 
   return devices;

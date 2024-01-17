@@ -124,10 +124,28 @@ const vidio_error* vidio_error_get_reason(const vidio_error* err)
 }
 
 
-struct vidio_input_device* const*
-vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)
+const vidio_error* vidio_list_input_devices(const struct vidio_input_device_filter* filter,
+                                            struct vidio_input_device* const** out_deviceList,
+                                            size_t* out_number)
 {
-  std::vector<vidio_input_device*> devices = vidio_input_device::list_input_devices(filter);
+  if (out_deviceList == nullptr && out_number == nullptr) {
+    return nullptr;
+  }
+
+  vidio_result<std::vector<vidio_input_device*>> devicesResult = vidio_input_device::list_input_devices(filter);
+  if (devicesResult.error) {
+    if (out_deviceList) {
+      *out_deviceList = nullptr;
+    }
+
+    if (out_number) {
+      *out_number = 0;
+    }
+
+    return devicesResult.error;
+  }
+
+  std::vector<vidio_input_device*>& devices = devicesResult.value;
 
   auto devlist = new vidio_input_device* [devices.size() + 1];
   for (size_t i = 0; i < devices.size(); i++) {
@@ -136,11 +154,15 @@ vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t*
 
   devlist[devices.size()] = nullptr;
 
+  if (out_deviceList) {
+    *out_deviceList = devlist;
+  }
+
   if (out_number) {
     *out_number = devices.size();
   }
 
-  return devlist;
+  return nullptr;
 }
 
 void vidio_input_devices_free_list(const struct vidio_input_device* const* out_devices, int also_free_devices)
@@ -374,10 +396,10 @@ void vidio_video_format_release(const struct vidio_video_format* format)
 }
 
 
-vidio_error* vidio_input_configure_capture(struct vidio_input* input,
-                                           const vidio_video_format* requested_format,
-                                           const vidio_output_format*,
-                                           const vidio_video_format** out_actual_format)
+const vidio_error* vidio_input_configure_capture(struct vidio_input* input,
+                                                 const vidio_video_format* requested_format,
+                                                 const vidio_output_format*,
+                                                 const vidio_video_format** out_actual_format)
 {
   auto err = input->set_capture_format(requested_format, out_actual_format);
   return err;
@@ -391,15 +413,15 @@ void vidio_input_set_message_callback(struct vidio_input* input,
 }
 
 
-vidio_error* vidio_input_start_capturing(struct vidio_input* input)
+const vidio_error* vidio_input_start_capturing(struct vidio_input* input)
 {
   return input->start_capturing();
 }
 
 
-void vidio_input_stop_capturing(struct vidio_input* input)
+const vidio_error* vidio_input_stop_capturing(struct vidio_input* input)
 {
-  input->stop_capturing();
+  return input->stop_capturing();
 }
 
 

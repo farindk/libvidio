@@ -33,7 +33,10 @@
 #include <mutex>
 
 #if WITH_JSON
+
 #include "nlohmann/json.hpp"
+#include "libvidio/vidio_error.h"
+
 #endif
 
 
@@ -45,7 +48,9 @@ public:
                          vidio_fraction framerate);
 
 #if WITH_JSON
+
   vidio_video_format_v4l(const nlohmann::json& json);
+
 #endif
 
   uint32_t get_width() const override { return m_width; }
@@ -65,7 +70,9 @@ public:
   int format_match_score(const vidio_video_format* f) const override;
 
 #if WITH_JSON
+
   std::string serialize(vidio_serialization_format) const override;
+
 #endif
 
 private:
@@ -80,7 +87,7 @@ private:
 struct vidio_v4l_raw_device
 {
 public:
-  bool query_device(const char* filename);
+  vidio_result<bool> query_device(const char* filename);
 
   std::string get_bus_info() const { return {(char*) &m_caps.bus_info[0]}; }
 
@@ -96,14 +103,14 @@ public:
 
   bool supports_pixel_format(__u32 pixelformat) const;
 
-  vidio_error* set_capture_format(const vidio_video_format_v4l* requested_format,
-                                  const vidio_video_format_v4l** out_actual_format);
+  const vidio_error* set_capture_format(const vidio_video_format_v4l* requested_format,
+                                        const vidio_video_format_v4l** out_actual_format);
 
-  vidio_error* start_capturing_blocking(struct vidio_input_device_v4l*);
+  const vidio_error* start_capturing_blocking(struct vidio_input_device_v4l*);
 
-  void stop_capturing();
+  const vidio_error* stop_capturing();
 
-  vidio_error* open();
+  const vidio_error* open();
 
   void close();
 
@@ -133,11 +140,11 @@ private:
   std::vector<format_v4l> m_formats;
 
   // type = V4L2_BUF_TYPE_VIDEO_CAPTURE or type = V4L2_BUF_TYPE_VIDEO_CAPTURE_MPLANE
-  std::vector<v4l2_fmtdesc> list_v4l_formats(__u32 type) const;
+  vidio_result<std::vector<v4l2_fmtdesc>> list_v4l_formats(__u32 type) const;
 
-  std::vector<v4l2_frmsizeenum> list_v4l_framesizes(__u32 pixel_type) const;
+  vidio_result<std::vector<v4l2_frmsizeenum>> list_v4l_framesizes(__u32 pixel_type) const;
 
-  std::vector<v4l2_frmivalenum> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
+  vidio_result<std::vector<v4l2_frmivalenum>> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
 
 
   __u32 m_capture_pixel_format;
@@ -147,9 +154,10 @@ private:
 
   std::mutex m_mutex_loop_control;
 
-  struct buffer {
-    void   *start;
-    size_t  length;
+  struct buffer
+  {
+    void* start;
+    size_t length;
   };
 
   std::vector<buffer> m_buffers;
@@ -174,12 +182,12 @@ public:
 
   std::vector<vidio_video_format*> get_video_formats() const override;
 
-  vidio_error* set_capture_format(const vidio_video_format* requested_format,
-                                  const vidio_video_format** out_actual_format) override;
+  const vidio_error* set_capture_format(const vidio_video_format* requested_format,
+                                        const vidio_video_format** out_actual_format) override;
 
-  vidio_error* start_capturing() override;
+  const vidio_error* start_capturing() override;
 
-  void stop_capturing() override;
+  const vidio_error* stop_capturing() override;
 
   const vidio_frame* peek_next_frame() const override;
 
@@ -188,9 +196,11 @@ public:
   std::string serialize(vidio_serialization_format serialformat) const override;
 
 #if WITH_JSON
+
   static vidio_input_device_v4l* find_matching_device(const std::vector<vidio_input*>& inputs, const nlohmann::json& json);
 
   int spec_match_score(const std::string& businfo, const std::string& card, const std::string& device_file) const;
+
 #endif
 
 private:
@@ -211,6 +221,6 @@ private:
 };
 
 
-std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
+vidio_result<std::vector<vidio_input_device_v4l*>> v4l_list_input_devices(const struct vidio_input_device_filter* filter);
 
 #endif //LIBVIDIO_V4L_H

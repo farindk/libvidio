@@ -27,7 +27,7 @@ inline uint8_t clip8(int v)
 {
   if (v <= 0) return 0;
   if (v >= 255) return 255;
-  return v;
+  return static_cast<uint8_t>(v);
 }
 
 inline uint8_t clip8(double v)

@@ -165,12 +165,18 @@ int vidio_video_format_v4l::format_match_score(const vidio_video_format* f) cons
 }
 
 
-
-bool vidio_v4l_raw_device::query_device(const char* filename)
+vidio_result<bool> vidio_v4l_raw_device::query_device(const char* filename)
 {
   m_fd = ::open(filename, O_RDWR);
   if (m_fd == -1) {
-    return false;
+    if (errno == ENOENT) {
+      return false;
+    }
+
+    auto* err = new vidio_error(vidio_error_code_cannot_open_camera, "Cannot open camera ({0})");
+    err->set_arg(0, filename);
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
 
   int ret;
@@ -179,7 +185,11 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
   if (ret == -1) {
     ::close(m_fd);
     m_fd = -1;
-    return false;
+
+    auto* err = new vidio_error(vidio_error_code_cannot_query_device_capabilities, "Cannot query V4L2 device capabilities (VIDIOC_QUERYCAP) ({0})");
+    err->set_arg(0, filename);
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
 
   m_device_file = filename;
@@ -194,32 +204,51 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
     if (ret == -1) {
       ::close(m_fd);
       m_fd = -1;
-      return false;
+
+      auto* err = new vidio_error(vidio_error_code_cannot_query_device_capabilities, "Cannot query V4L2 device parameters (VIDIOC_G_PARM) ({0})");
+      err->set_arg(0, filename);
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
     m_supports_framerate = !!(streamparm.parm.capture.capability & V4L2_CAP_TIMEPERFRAME);
 
     // --- list supported formats
 
-    auto formats = list_v4l_formats(V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    auto formatsResult = list_v4l_formats(V4L2_BUF_TYPE_VIDEO_CAPTURE);
+    if (formatsResult.error) {
+      return formatsResult.error;
+    }
+
+    const auto& formats = formatsResult.value;
     for (auto f : formats) {
       format_v4l format;
       format.m_fmtdesc = f;
 
-      auto frmsizes = list_v4l_framesizes(f.pixelformat);
+      auto frmsizesResult = list_v4l_framesizes(f.pixelformat);
+      if (frmsizesResult.error) {
+        return frmsizesResult.error;
+      }
+
+      const auto& frmsizes = frmsizesResult.value;
       for (auto s : frmsizes) {
         framesize_v4l fsize;
         fsize.m_framesize = s;
 
         if (m_supports_framerate) {
-          std::vector<v4l2_frmivalenum> frmintervals;
+          vidio_result<std::vector<v4l2_frmivalenum>> frmintervalsResult;
+
           if (s.type == V4L2_FRMSIZE_TYPE_DISCRETE) {
-            frmintervals = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
+            frmintervalsResult = list_v4l_frameintervals(f.pixelformat, s.discrete.width, s.discrete.height);
           }
           else {
-            frmintervals = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
+            frmintervalsResult = list_v4l_frameintervals(f.pixelformat, s.stepwise.max_width, s.stepwise.max_height);
           }
 
-          fsize.m_frameintervals = frmintervals;
+          if (frmintervalsResult.error) {
+            return frmintervalsResult.error;
+          }
+
+          fsize.m_frameintervals = frmintervalsResult.value;
         }
 
         format.m_framesizes.emplace_back(fsize);
@@ -236,7 +265,7 @@ bool vidio_v4l_raw_device::query_device(const char* filename)
 }
 
 
-std::vector<v4l2_fmtdesc> vidio_v4l_raw_device::list_v4l_formats(__u32 type) const
+vidio_result<std::vector<v4l2_fmtdesc>> vidio_v4l_raw_device::list_v4l_formats(__u32 type) const
 {
   std::vector<v4l2_fmtdesc> fmts;
 
@@ -247,8 +276,14 @@ std::vector<v4l2_fmtdesc> vidio_v4l_raw_device::list_v4l_formats(__u32 type) con
   for (fmtdesc.index = 0;; fmtdesc.index++) {
     int ret = ioctl(m_fd, VIDIOC_ENUM_FMT, &fmtdesc);
     if (ret < 0) {
-      // usually: errno == EINVAL
-      break;
+      if (errno == EINVAL) {
+        // we reached the end of the enumeration
+        break;
+      }
+
+      auto* err = new vidio_error(vidio_error_code_cannot_query_device_capabilities, "Cannot query V4L2 device formats (VIDIOC_ENUM_FMT)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
 
     fmts.emplace_back(fmtdesc);
@@ -258,7 +293,7 @@ std::vector<v4l2_fmtdesc> vidio_v4l_raw_device::list_v4l_formats(__u32 type) con
 }
 
 
-std::vector<v4l2_frmsizeenum> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pixel_type) const
+vidio_result<std::vector<v4l2_frmsizeenum>> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pixel_type) const
 {
   std::vector<v4l2_frmsizeenum> frmsizes;
 
@@ -269,27 +304,33 @@ std::vector<v4l2_frmsizeenum> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pi
   for (framesize.index = 0;; framesize.index++) {
     int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMESIZES, &framesize);
     if (ret < 0) {
-      // usually: errno == EINVAL
-      break;
+      if (errno == EINVAL) {
+        // we reached the end of the enumeration
+        break;
+      }
+
+      auto* err = new vidio_error(vidio_error_code_cannot_query_device_capabilities, "Cannot query V4L2 device frame sizes (VIDIOC_ENUM_FRAMESIZES)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
 
     // check if there is a duplicate framesize (my SVPro camera lists one size twice)
 
     bool duplicate_found = false;
-    for (size_t i = 0; i < frmsizes.size(); i++) {
-      if (frmsizes[i].type == framesize.type) {
-        if (frmsizes[i].type == V4L2_FRMSIZE_TYPE_DISCRETE &&
-            frmsizes[i].discrete.width == framesize.discrete.width &&
-            frmsizes[i].discrete.height == framesize.discrete.height) {
+    for (auto& frmsize : frmsizes) {
+      if (frmsize.type == framesize.type) {
+        if (frmsize.type == V4L2_FRMSIZE_TYPE_DISCRETE &&
+            frmsize.discrete.width == framesize.discrete.width &&
+            frmsize.discrete.height == framesize.discrete.height) {
           duplicate_found = true;
           break;
         }
-        else if (frmsizes[i].stepwise.min_width == framesize.stepwise.min_width &&
-                 frmsizes[i].stepwise.max_width == framesize.stepwise.max_width &&
-                 frmsizes[i].stepwise.min_height == framesize.stepwise.min_height &&
-                 frmsizes[i].stepwise.max_height == framesize.stepwise.max_height &&
-                 frmsizes[i].stepwise.step_width == framesize.stepwise.step_width &&
-                 frmsizes[i].stepwise.step_height == framesize.stepwise.step_height) {
+        else if (frmsize.stepwise.min_width == framesize.stepwise.min_width &&
+                 frmsize.stepwise.max_width == framesize.stepwise.max_width &&
+                 frmsize.stepwise.min_height == framesize.stepwise.min_height &&
+                 frmsize.stepwise.max_height == framesize.stepwise.max_height &&
+                 frmsize.stepwise.step_width == framesize.stepwise.step_width &&
+                 frmsize.stepwise.step_height == framesize.stepwise.step_height) {
           duplicate_found = true;
           break;
         }
@@ -305,7 +346,7 @@ std::vector<v4l2_frmsizeenum> vidio_v4l_raw_device::list_v4l_framesizes(__u32 pi
 }
 
 
-std::vector<v4l2_frmivalenum>
+vidio_result<std::vector<v4l2_frmivalenum>>
 vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const
 {
   std::vector<v4l2_frmivalenum> frmivals;
@@ -320,18 +361,21 @@ vidio_v4l_raw_device::list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u
   for (frameinterval.index = 0;; frameinterval.index++) {
     int ret = ioctl(m_fd, VIDIOC_ENUM_FRAMEINTERVALS, &frameinterval);
     if (ret < 0) {
-      int e = errno;
-      (void) e;
-      // usually: errno == EINVAL
-      break;
+      if (errno == EINVAL) {
+        // we reached the end of the enumeration
+        break;
+      }
+
+      auto* err = new vidio_error(vidio_error_code_cannot_query_device_capabilities, "Cannot query V4L2 frame intervals (VIDIOC_ENUM_FRAMEINTERVALS)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
 
 
     // check if there is a duplicate frame-interval (my SVPro camera lists some twice)
 
     bool duplicate_found = false;
-    for (size_t i = 0; i < frmivals.size(); i++) {
-      const auto& f0 = frmivals[i];
+    for (const auto& f0 : frmivals) {
       const auto& f1 = frameinterval;
 
       if (f0.type == f1.type) {
@@ -438,16 +482,14 @@ static vidio_pixel_format v4l2_pixelformat_to_vidio_format(__u32 v4l_format)
   }
 }
 
-vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v4l* format_v4l,
-                                                      const vidio_video_format_v4l** out_format)
+const vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v4l* format_v4l,
+                                                            const vidio_video_format_v4l** out_format)
 {
   if (!is_open()) {
-    printf("open device (%d)\n", m_fd);
     auto* err = open();
     if (err) {
       return err;
     }
-    printf("-> (%d)\n", m_fd);
   }
 
   assert(m_fd >= 0);
@@ -463,8 +505,9 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 
   ret = ioctl(m_fd, VIDIOC_S_FMT, &fmt);
   if (ret == -1) {
-    printf("ERROR S_FMT: %d\n", errno);
-    return 0; // TODO
+    auto* err = new vidio_error(vidio_error_code_cannot_set_camera_format, "Cannot set camera format (VIDIOC_S_FMT)");
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
 
 
@@ -485,21 +528,29 @@ vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_format_v
 
     ret = ioctl(m_fd, VIDIOC_S_PARM, &param);
     if (ret == -1) {
-      return 0; // TODO
+      auto* err = new vidio_error(vidio_error_code_cannot_set_camera_format, "Cannot set camera format (VIDIOC_S_PARAM)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
-
-    printf("set framerate: %d/%d\n",
-           param.parm.capture.timeperframe.denominator,
-           param.parm.capture.timeperframe.numerator);
   }
 
   return nullptr;
 }
 
 
-vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v4l* input_device)
+static std::string fourcc_to_string(uint32_t cc)
 {
-  printf("vidio_v4l_raw_device::start_capturing_blocking fd=%d\n", m_fd);
+  std::string str("0000");
+  str[0] = static_cast<char>(cc & 0xFF);
+  str[1] = static_cast<char>((cc >> 8) & 0xFF);
+  str[2] = static_cast<char>((cc >> 16) & 0xFF);
+  str[3] = static_cast<char>((cc >> 24) & 0xFF);
+  return str;
+}
+
+
+const vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v4l* input_device)
+{
   assert(m_fd != -1);
   assert(input_device != nullptr);
 
@@ -514,27 +565,21 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
   int ret;
 
   if (-1 == (ret = ioctl(m_fd, VIDIOC_REQBUFS, &req))) {
-    if (EINVAL == errno) {
-      fprintf(stderr, "%s does not support "
-                      "memory mappingn", "QWE");
-      printf("vidio_v4l_raw_device::ERROR VIDIOC_REQBUFS\n");
-      exit(EXIT_FAILURE);
-    }
-    else {
-//      errno_exit("VIDIOC_REQBUFS");
-    }
+    auto* err = new vidio_error(vidio_error_code_cannot_alloc_capturing_buffers, "Cannot get capturing buffers (VIDIOC_REQBUFS)");
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
 
-  if (req.count < 2) {
-    fprintf(stderr, "Insufficient buffer memory on %s\\n",
-            "QWE"); //          dev_name);
-    printf("vidio_v4l_raw_device::ERROR req.count\n");
-    exit(EXIT_FAILURE);
+  if (req.count <= 1) {
+    auto* err = new vidio_error(vidio_error_code_cannot_alloc_capturing_buffers, "Cannot get enough capturing buffers (VIDIOC_REQBUFS count={0})");
+    err->set_arg(0, std::to_string(req.count));
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
 
   m_buffers.resize(req.count);
 
-  for (__u32 i = 0 /**/; i < req.count; i++) {
+  for (__u32 i = 0; i < req.count; i++) {
     v4l2_buffer buf{};
 
     buf.type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
@@ -542,9 +587,10 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     buf.index = i;
 
     if (-1 == ioctl(m_fd, VIDIOC_QUERYBUF, &buf)) {
-      printf("vidio_v4l_raw_device::ERROR VIDIOC_QUERYBUF %d\n", errno);
-      return 0; // TODO
-      //  errno_exit("VIDIOC_QUERYBUF");
+      auto* err = new vidio_error(vidio_error_code_cannot_alloc_capturing_buffers, "Cannot query capturing buffers (VIDIOC_QUERYBUF index={0})");
+      err->set_arg(0, std::to_string(req.count));
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
 
     m_buffers[i].length = buf.length;
@@ -556,11 +602,10 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
              m_fd, buf.m.offset);
 
     if (MAP_FAILED == m_buffers[i].start) {
-      int e = errno;
-      (void) e;
-      printf("vidio_v4l_raw_device::ERROR mmap\n");
-      return 0; // TODO
-      //errno_exit("mmap");
+      auto* err = new vidio_error(vidio_error_code_cannot_alloc_capturing_buffers, "Cannot map capturing buffer memory (mmap index={0})");
+      err->set_arg(0, std::to_string(req.count));
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
   }
 
@@ -574,8 +619,10 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     buf.index = (__u32) i;
 
     if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
-      printf("vidio_v4l_raw_device::ERROR VIDIOC_QBUF\n");
-      return 0; // TODO
+      auto* err = new vidio_error(vidio_error_code_cannot_alloc_capturing_buffers, "Cannot queue buffer (VIDIOC_QBUF index={0})");
+      err->set_arg(0, std::to_string(req.count));
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
   }
 
@@ -583,20 +630,14 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
 
   v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
   if (-1 == ioctl(m_fd, VIDIOC_STREAMON, &type)) {
-    printf("vidio_v4l_raw_device::ERROR VIDIOC_STREAMON\n");
-    return 0; // TODO
+    auto* err = new vidio_error(vidio_error_code_cannot_start_capturing, "Cannot start capturing (VIDIOC_STREAMON)");
+    err->set_reason(vidio_error::from_errno());
+    return err;
   }
-
-  //FILE* fh = fopen("/home/farindk/out.bin", "wb");
 
   m_capturing_active = true;
 
-  printf("vidio_v4l_raw_device::before loop\n");
-
-  int cnt = 0;
   while (true || m_capturing_active) {
-    cnt++;
-
     fd_set fds;
     FD_ZERO(&fds);
     FD_SET(m_fd, &fds);
@@ -612,8 +653,9 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
         if (errno == EINTR)
           continue;
         else {
-          printf("vidio_v4l_raw_device::ERROR select\n");
-          return 0; // TODO
+          auto* err = new vidio_error(vidio_error_code_error_while_capturing, "Error while waiting for next frame");
+          err->set_reason(vidio_error::from_errno());
+          return err;
         }
       }
     }
@@ -632,19 +674,16 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
       m_mutex_loop_control.unlock();
 
       if (ret == -1) {
-        printf("vidio_v4l_raw_device::ERROR VIDIOC_DQBUF %d\n", errno);
-        return 0; // TODO
+        auto* err = new vidio_error(vidio_error_code_error_while_capturing, "Cannot unqueue buffer (VIDIOC_DQBUF index={0})");
+        err->set_arg(0, std::to_string(req.count));
+        err->set_reason(vidio_error::from_errno());
+        return err;
       }
     }
     else {
       m_mutex_loop_control.unlock();
       break;
     }
-
-    printf("%d : got %p %d at %d.%d:%d %ld - #%d\n", cnt, m_buffers[buf.index].start, buf.bytesused,
-           buf.timecode.minutes, buf.timecode.seconds, buf.timecode.frames,
-           buf.timestamp.tv_usec, buf.sequence);
-    //fwrite(m_buffers[buf.index].start, buf.bytesused, 1, fh);
 
     const buffer& buffer = m_buffers[buf.index];
 
@@ -675,9 +714,12 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
                                     (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
-      default:
-        printf("invalid pixel format\n");
+      default: {
+        auto* err = new vidio_error(vidio_error_code_internal_error, "Unsupported V4L2 pixel format ({0})");
+        err->set_arg(0, fourcc_to_string(m_capture_pixel_format));
+        return err;
         break;
+      }
     }
 
     uint64_t timestamp = buf.timestamp.tv_sec * 1000000 + buf.timestamp.tv_usec;
@@ -688,15 +730,21 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
     // --- re-queue buffer
 
     if (-1 == ioctl(m_fd, VIDIOC_QBUF, &buf)) {
-      printf("vidio_v4l_raw_device::ERROR VIDIOC_QBUF\n");
-      return 0; // TODO
+      auto* err = new vidio_error(vidio_error_code_error_while_capturing, "Cannot queue buffer (VIDIOC_QBUF index={0})");
+      err->set_arg(0, std::to_string(req.count));
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
   }
 
   // release capturing buffers
 
   for (auto& buffer : m_buffers) {
-    munmap(buffer.start, buffer.length);
+    if (munmap(buffer.start, buffer.length) == -1) {
+      auto* err = new vidio_error(vidio_error_code_cannot_free_capturing_buffers, "Cannot unmap buffer (munmap)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
+    }
   }
 
   m_buffers.clear();
@@ -705,7 +753,7 @@ vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_device_v
 }
 
 
-void vidio_v4l_raw_device::stop_capturing()
+const vidio_error* vidio_v4l_raw_device::stop_capturing()
 {
   if (m_capturing_active) {
     std::unique_lock<std::mutex> lock(m_mutex_loop_control);
@@ -714,8 +762,9 @@ void vidio_v4l_raw_device::stop_capturing()
 
     v4l2_buf_type type = V4L2_BUF_TYPE_VIDEO_CAPTURE;
     if (-1 == ioctl(m_fd, VIDIOC_STREAMOFF, &type)) {
-      printf("vidio_v4l_raw_device::ERROR VIDIOC_STREAMOFF\n");
-      return; // 0; // TODO
+      auto* err = new vidio_error(vidio_error_code_cannot_stop_capturing, "Cannot stop capturing (V4L2 STREAMOFF)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
 
 
@@ -727,18 +776,22 @@ void vidio_v4l_raw_device::stop_capturing()
     req.memory = V4L2_MEMORY_MMAP;
 
     if (-1 == ioctl(m_fd, VIDIOC_REQBUFS, &req)) {
-      printf("REQBUFF=0 error %d\n", errno);
+      auto* err = new vidio_error(vidio_error_code_cannot_free_capturing_buffers, "Cannot free capturing buffers (V4L2 set REQBUFS count to 0)");
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
   }
+
+  return nullptr;
 }
 
 
-vidio_error* vidio_v4l_raw_device::open()
+const vidio_error* vidio_v4l_raw_device::open()
 {
   if (m_fd == -1) {
     m_fd = ::open(m_device_file.c_str(), O_RDWR);
     if (m_fd == -1) {
-      auto* err = new vidio_error(vidio_error_code_cannot_open_camera_device, "Cannot open V4L2 camera device '{0}'");
+      auto* err = new vidio_error(vidio_error_code_cannot_open_camera, "Cannot open V4L2 camera device '{0}'");
       err->set_arg(0, m_device_file);
       err->set_reason(vidio_error::from_errno());
       return err;
@@ -770,7 +823,7 @@ bool vidio_input_device_v4l::matches_v4l_raw_device(const vidio_v4l_raw_device* 
 }
 
 
-std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_input_device_filter* filter)
+vidio_result<std::vector<vidio_input_device_v4l*>> v4l_list_input_devices(const struct vidio_input_device_filter* filter)
 {
   std::vector<vidio_v4l_raw_device*> rawdevices;
   std::vector<vidio_input_device_v4l*> devices;
@@ -783,9 +836,16 @@ std::vector<vidio_input_device_v4l*> v4l_list_input_devices(const struct vidio_i
       if (strncmp(dir->d_name, "video", 5) == 0) {
         auto device = new vidio_v4l_raw_device();
 
-        if (device->query_device((std::string{"/dev/"} + dir->d_name).c_str())) {
-          if (device->has_video_capture_capability()) {
-            rawdevices.push_back(device);
+        auto result = device->query_device((std::string{"/dev/"} + dir->d_name).c_str());
+
+        if (result.error) {
+          return {result.error};
+        }
+        else if (result.value) {
+          {
+            if (device->has_video_capture_capability()) {
+              rawdevices.push_back(device);
+            }
           }
         }
 
@@ -839,12 +899,13 @@ std::vector<vidio_video_format*> vidio_input_device_v4l::get_video_formats() con
 }
 
 
-vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format* requested_format,
-                                                        const vidio_video_format** out_actual_format)
+const vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format* requested_format,
+                                                              const vidio_video_format** out_actual_format)
 {
   const auto* format_v4l = dynamic_cast<const vidio_video_format_v4l*>(requested_format);
   if (!format_v4l) {
-    return 0; // TOOD
+    auto* err = new vidio_error(vidio_error_code_parameter_error, "Parameter error: format does not match V4L2 device");
+    return err;
   }
 
   vidio_v4l_raw_device* capturedev = nullptr;
@@ -859,7 +920,8 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
   m_active_device = capturedev;
 
   if (!capturedev) {
-    return 0; // TODO
+    auto* err = new vidio_error(vidio_error_code_cannot_set_camera_format, "No device with matching pixel format found");
+    return err;
   }
 
   const vidio_video_format_v4l* actual_format = nullptr;
@@ -876,41 +938,31 @@ vidio_error* vidio_input_device_v4l::set_capture_format(const vidio_video_format
 }
 
 
-vidio_error* vidio_input_device_v4l::start_capturing()
+const vidio_error* vidio_input_device_v4l::start_capturing()
 {
   if (!m_active_device) {
-    return 0; // TODO
+    return new vidio_error(vidio_error_code_usage_error, "Usage error: cannot start capturing without setting capturing parameters.");
   }
 
-  printf("output queue size: %zu\n", m_frame_queue.size());
   m_capturing_thread = std::thread(&vidio_v4l_raw_device::start_capturing_blocking, m_active_device, this);
-
-  //m_active_device->start_capturing_blocking(callback);
 
   return nullptr;
 }
 
 
-void vidio_input_device_v4l::stop_capturing()
+const vidio_error* vidio_input_device_v4l::stop_capturing()
 {
-  m_active_device->stop_capturing();
+  auto* err = m_active_device->stop_capturing();
+  if (err) {
+    return err;
+  }
+
   if (m_capturing_thread.joinable()) {
     m_capturing_thread.join();
-
-    // clear all pending frames in queue
-
-    /*
-    for (auto* frame : m_frame_queue) {
-      delete frame;
-    }
-
-    m_frame_queue.clear();
-    */
-
-    printf("nFrames in queue after stopping: %zu\n", m_frame_queue.size());
-
     send_callback_message(vidio_input_message_end_of_stream);
   }
+
+  return nullptr;
 }
 
 
@@ -960,9 +1012,9 @@ std::string vidio_input_device_v4l::serialize(vidio_serialization_format serialf
 {
 #if WITH_JSON
   nlohmann::json json{
-      {"class", "v4l2"},
-      {"bus_info", m_v4l_capture_devices[0]->get_bus_info()},
-      {"card", (const char*) (m_v4l_capture_devices[0]->get_v4l_capabilities().card)},
+      {"class",       "v4l2"},
+      {"bus_info",    m_v4l_capture_devices[0]->get_bus_info()},
+      {"card",        (const char*) (m_v4l_capture_devices[0]->get_v4l_capabilities().card)},
       {"device_file", m_v4l_capture_devices[0]->get_device_file()}
   };
 
@@ -1000,7 +1052,7 @@ int vidio_input_device_v4l::spec_match_score(const std::string& businfo, const s
 
   for (const auto& rawdevice : m_v4l_capture_devices) {
     if (rawdevice->get_bus_info() == businfo &&
-        (const char*)(rawdevice->get_v4l_capabilities().card) == card &&
+        (const char*) (rawdevice->get_v4l_capabilities().card) == card &&
         rawdevice->get_device_file() == device_file) {
       return 10;
     }
@@ -1010,7 +1062,7 @@ int vidio_input_device_v4l::spec_match_score(const std::string& businfo, const s
 
   for (const auto& rawdevice : m_v4l_capture_devices) {
     if (rawdevice->get_bus_info() == businfo ||
-        (const char*)(rawdevice->get_v4l_capabilities().card) == card) {
+        (const char*) (rawdevice->get_v4l_capabilities().card) == card) {
       return 5;
     }
   }
@@ -1018,7 +1070,7 @@ int vidio_input_device_v4l::spec_match_score(const std::string& businfo, const s
   // same device name
 
   for (const auto& rawdevice : m_v4l_capture_devices) {
-    if ((const char*)(rawdevice->get_v4l_capabilities().card) == card) {
+    if ((const char*) (rawdevice->get_v4l_capabilities().card) == card) {
       return 1;
     }
   }

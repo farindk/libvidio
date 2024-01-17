@@ -24,6 +24,7 @@
 #include <libvidio/vidio.h>
 #include <string>
 #include <vector>
+#include "vidio_error.h"
 
 
 struct vidio_input
@@ -37,17 +38,18 @@ public:
 
   virtual std::vector<vidio_video_format*> get_video_formats() const = 0;
 
-  virtual vidio_error* set_capture_format(const vidio_video_format* requested_format,
-                                          const vidio_video_format** out_actual_format) = 0;
+  virtual const vidio_error* set_capture_format(const vidio_video_format* requested_format,
+                                                const vidio_video_format** out_actual_format) = 0;
 
-  virtual void set_message_callback(void (*callback)(enum vidio_input_message, void* userData), void* userData) {
+  virtual void set_message_callback(void (* callback)(enum vidio_input_message, void* userData), void* userData)
+  {
     m_message_callback = callback;
     m_user_data = userData;
   }
 
-  virtual vidio_error* start_capturing() = 0;
+  virtual const vidio_error* start_capturing() = 0;
 
-  virtual void stop_capturing() = 0;
+  virtual const vidio_error* stop_capturing() = 0;
 
   virtual const vidio_frame* peek_next_frame() const = 0;
 
@@ -58,11 +60,13 @@ public:
   static vidio_input_device_v4l* find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serialData, vidio_serialization_format serialformat);
 
 private:
-  void (*m_message_callback)(enum vidio_input_message, void* userData) = nullptr;
+  void (* m_message_callback)(enum vidio_input_message, void* userData) = nullptr;
+
   void* m_user_data;
 
 protected:
-  void send_callback_message(enum vidio_input_message msg) const {
+  void send_callback_message(enum vidio_input_message msg) const
+  {
     if (m_message_callback) {
       m_message_callback(msg, m_user_data);
     }
@@ -73,7 +77,7 @@ protected:
 struct vidio_input_device : public vidio_input
 {
 public:
-  static std::vector<vidio_input_device*> list_input_devices(const struct vidio_input_device_filter*);
+  static vidio_result<std::vector<vidio_input_device*>> list_input_devices(const struct vidio_input_device_filter*);
 };
 
 #endif //LIBVIDIO_VIDIO_INPUT_H

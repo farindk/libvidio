@@ -34,7 +34,8 @@ public:
 
   vidio_error(vidio_error_code code, std::string msg) : m_code(code), m_msg(msg) {}
 
-  ~vidio_error() {
+  ~vidio_error()
+  {
     delete m_reason;
   }
 
@@ -72,7 +73,8 @@ public:
     return m_maxArg;
   }
 
-  void set_reason(const vidio_error* error) {
+  void set_reason(const vidio_error* error)
+  {
     delete m_reason;
     m_reason = error;
   }
@@ -86,6 +88,20 @@ private:
   int m_maxArg = 0;
 
   const vidio_error* m_reason = nullptr;
+};
+
+
+template<typename T>
+struct vidio_result
+{
+  vidio_result() = default;
+
+  vidio_result(const T& v) : value(v) {}
+
+  vidio_result(const vidio_error* err) : error(err) {}
+
+  const vidio_error* error = nullptr;
+  T value;
 };
 
 #endif //LIBVIDIO_VIDIO_ERROR_H

@@ -79,8 +79,18 @@ enum vidio_error_code
 {
   vidio_error_code_success = 0,
   vidio_error_code_other = 1,
-  vidio_error_code_errno = 2,
-  vidio_error_code_cannot_open_camera_device = 3
+  vidio_error_code_parameter_error = 2,
+  vidio_error_code_usage_error = 3,
+  vidio_error_code_internal_error = 4,
+  vidio_error_code_errno = 5,
+  vidio_error_code_cannot_open_camera = 6,
+  vidio_error_code_cannot_query_device_capabilities = 7,
+  vidio_error_code_cannot_set_camera_format = 8,
+  vidio_error_code_cannot_alloc_capturing_buffers = 9,
+  vidio_error_code_cannot_start_capturing = 10,
+  vidio_error_code_error_while_capturing = 11,
+  vidio_error_code_cannot_stop_capturing = 12,
+  vidio_error_code_cannot_free_capturing_buffers = 13
 };
 
 LIBVIDIO_API void vidio_error_release(const vidio_error*);
@@ -233,7 +243,7 @@ LIBVIDIO_API const char* vidio_video_format_serialize(const struct vidio_video_f
 
 LIBVIDIO_API const vidio_video_format* vidio_video_format_deserialize(const char* serializedString, vidio_serialization_format);
 
-LIBVIDIO_API const vidio_video_format* vidio_video_format_find_best_match(const vidio_video_format*const* format_list, int nFormats,
+LIBVIDIO_API const vidio_video_format* vidio_video_format_find_best_match(const vidio_video_format* const* format_list, int nFormats,
                                                                           const vidio_video_format* requested_format,
                                                                           enum vidio_device_match* out_score);
 
@@ -289,8 +299,8 @@ enum vidio_input_message
   vidio_input_message_input_overflow
 };
 
-LIBVIDIO_API struct vidio_input_device* const*
-vidio_list_input_devices(const struct vidio_input_device_filter*, size_t* out_number);
+LIBVIDIO_API const vidio_error* vidio_list_input_devices(const struct vidio_input_device_filter*,
+                                                         struct vidio_input_device* const** out_device_list, size_t* out_number);
 
 LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device* const* devices, int also_free_devices);
 
@@ -319,10 +329,10 @@ LIBVIDIO_API enum vidio_input_source vidio_input_get_source(const struct vidio_i
 
 struct vidio_output_format;
 
-LIBVIDIO_API vidio_error* vidio_input_configure_capture(struct vidio_input* input,
-                                                        const vidio_video_format* requested_format,
-                                                        const vidio_output_format*,
-                                                        const vidio_video_format** out_actual_format);
+LIBVIDIO_API const vidio_error* vidio_input_configure_capture(struct vidio_input* input,
+                                                              const vidio_video_format* requested_format,
+                                                              const vidio_output_format*,
+                                                              const vidio_video_format** out_actual_format);
 
 struct vidio_frame;
 
@@ -330,9 +340,9 @@ struct vidio_frame;
 LIBVIDIO_API void vidio_input_set_message_callback(struct vidio_input* input,
                                                    void (*)(enum vidio_input_message, void* userData), void* userData);
 
-LIBVIDIO_API vidio_error* vidio_input_start_capturing(struct vidio_input* input);
+LIBVIDIO_API const vidio_error* vidio_input_start_capturing(struct vidio_input* input);
 
-LIBVIDIO_API void vidio_input_stop_capturing(struct vidio_input* input);
+LIBVIDIO_API const vidio_error* vidio_input_stop_capturing(struct vidio_input* input);
 
 LIBVIDIO_API const vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
 
