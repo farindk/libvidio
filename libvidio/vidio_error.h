@@ -34,6 +34,12 @@ public:
 
   vidio_error(vidio_error_code code, std::string msg) : m_code(code), m_msg(msg) {}
 
+  ~vidio_error() {
+    delete m_reason;
+  }
+
+  static const vidio_error* from_errno();
+
   void set_code(enum vidio_error_code code) { m_code = code; }
 
   void set_message_template(std::string msg) { m_msg = msg; }
@@ -66,11 +72,20 @@ public:
     return m_maxArg;
   }
 
+  void set_reason(const vidio_error* error) {
+    delete m_reason;
+    m_reason = error;
+  }
+
+  [[nodiscard]] const vidio_error* get_reason() const { return m_reason; }
+
 private:
   vidio_error_code m_code = vidio_error_code_success;
   std::string m_msg;
   std::map<int, std::string> m_args;
   int m_maxArg = 0;
+
+  const vidio_error* m_reason = nullptr;
 };
 
 #endif //LIBVIDIO_VIDIO_ERROR_H

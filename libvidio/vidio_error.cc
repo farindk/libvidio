@@ -20,6 +20,7 @@
 
 #include "vidio_error.h"
 #include <regex>
+#include <errno.h>
 
 std::string vidio_error::get_formatted_message() const
 {
@@ -31,9 +32,16 @@ std::string vidio_error::get_formatted_message() const
 
   for (int i=0;i<m_maxArg;i++) {
     std::stringstream sstr;
-    sstr << "{" << i << "}";
+    sstr << "\\{" << i << "\\}";
     msg = std::regex_replace(msg, std::regex(sstr.str()), get_arg(i));
   }
 
   return msg;
+}
+
+
+const vidio_error* vidio_error::from_errno()
+{
+  auto* err = new vidio_error(vidio_error_code_errno, strerror(errno));
+  return err;
 }

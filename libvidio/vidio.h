@@ -78,7 +78,9 @@ struct vidio_error;
 enum vidio_error_code
 {
   vidio_error_code_success = 0,
-  vidio_error_code_other = 1 // TODO
+  vidio_error_code_other = 1,
+  vidio_error_code_errno = 2,
+  vidio_error_code_cannot_open_camera_device = 3
 };
 
 LIBVIDIO_API void vidio_error_release(const vidio_error*);
@@ -95,6 +97,9 @@ LIBVIDIO_API const char* vidio_error_get_message_template(const vidio_error*);
 LIBVIDIO_API const char* vidio_error_get_argument(const vidio_error*, int n);
 
 LIBVIDIO_API int vidio_error_get_number_of_arguments(const vidio_error*);
+
+LIBVIDIO_API const vidio_error* vidio_error_get_reason(const vidio_error*);
+
 
 
 // === Video Frame ===

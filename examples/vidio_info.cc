@@ -158,6 +158,24 @@ void message_callback(vidio_input_message msg, void* userData)
 }
 
 
+void show_err(const vidio_error* err, bool release = true)
+{
+  const char* msg = vidio_error_get_message(err);
+  std::cerr << "ERROR: " << msg << "\n";
+  vidio_free_string(msg);
+
+  const auto* reason = vidio_error_get_reason(err);
+  if (reason) {
+    std::cerr << "because: ";
+    show_err(reason, false);
+  }
+
+  if (release) {
+    vidio_error_release(err);
+  }
+}
+
+
 int main(int argc, char** argv)
 {
   printf("vidio_version: %s\n", vidio_get_version());
@@ -197,7 +215,10 @@ int main(int argc, char** argv)
         const vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
         auto* err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
                                                   &actual_format);
-        (void) err; // TODO
+        if (err) {
+          show_err(err);
+          return 10;
+        }
 
         converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
                                            vidio_pixel_format_RGB8);

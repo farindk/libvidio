@@ -118,6 +118,11 @@ int vidio_error_get_number_of_arguments(const vidio_error* err)
   return err->get_number_of_args();
 }
 
+const vidio_error* vidio_error_get_reason(const vidio_error* err)
+{
+  return err->get_reason();
+}
+
 
 struct vidio_input_device* const*
 vidio_list_input_devices(const struct vidio_input_device_filter* filter, size_t* out_number)

@@ -32,6 +32,8 @@
 #include <cassert>
 #include <algorithm>
 #include <sys/mman.h>
+#include "libvidio/vidio_error.h"
+
 
 static vidio_pixel_format_class v4l_pixelformat_to_pixel_format_class(__u32 pixelformat)
 {
@@ -736,7 +738,10 @@ vidio_error* vidio_v4l_raw_device::open()
   if (m_fd == -1) {
     m_fd = ::open(m_device_file.c_str(), O_RDWR);
     if (m_fd == -1) {
-      return 0; // TODO
+      auto* err = new vidio_error(vidio_error_code_cannot_open_camera_device, "Cannot open V4L2 camera device '{0}'");
+      err->set_arg(0, m_device_file);
+      err->set_reason(vidio_error::from_errno());
+      return err;
     }
   }
 
