@@ -22,7 +22,7 @@
 #include <vector>
 
 #if WITH_VIDEO4LINUX2
-#include "v4l/v4l.h"
+#include "libvidio/v4l/vidio_input_device_v4l.h"
 #endif
 
 #if WITH_JSON

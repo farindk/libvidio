@@ -21,7 +21,7 @@
 #include "vidio_video_format.h"
 
 #include "nlohmann/json.hpp"
-#include "v4l/v4l.h"
+#include "libvidio/v4l/vidio_input_device_v4l.h"
 
 const vidio_video_format* vidio_video_format::deserialize(const std::string& jsonStr, vidio_serialization_format serialformat)
 {

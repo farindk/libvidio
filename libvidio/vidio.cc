@@ -25,7 +25,7 @@
 #include "libvidio/vidio_video_format.h"
 #include "libvidio/vidio_format_converter.h"
 #include "libvidio/colorconversion/converter.h"
-#include "libvidio/v4l/v4l.h"
+#include "libvidio/v4l/vidio_input_device_v4l.h"
 #include <cassert>
 #include <cstring>
 
