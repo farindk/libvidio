@@ -1,7 +1,8 @@
 include(CMakePackageConfigHelpers)
 
 set(libvidio_headers
-        vidio.h)
+        vidio.h
+        vidio_capturing_loop.h)
 
 set(libvidio_sources
         vidio.cc
@@ -45,7 +46,7 @@ set_target_properties(vidio
 if (APPLE)
     set_target_properties(vidio
             PROPERTIES
-	    LINK_FLAGS "-Wl,-compatibility_version,${MACOS_COMPATIBLE_VERSION}")
+            LINK_FLAGS "-Wl,-compatibility_version,${MACOS_COMPATIBLE_VERSION}")
 endif ()
 
 target_compile_definitions(vidio
@@ -61,13 +62,13 @@ if (WITH_VIDEO4LINUX2)
     target_compile_definitions(vidio PRIVATE WITH_VIDEO4LINUX2)
 
     add_subdirectory(v4l)
-endif()
+endif ()
 
 if (WITH_JSON)
     add_subdirectory(third-party/nlohmann-json)
     target_include_directories(vidio PRIVATE third-party/nlohmann-json/include)
     target_compile_definitions(vidio PRIVATE WITH_JSON)
-endif()
+endif ()
 
 if (FFMPEG_avcodec_FOUND)
     target_compile_definitions(vidio PRIVATE WITH_FFMPEG)
@@ -87,7 +88,7 @@ install(TARGETS vidio EXPORT ${PROJECT_NAME}-config
         RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR}
         LIBRARY DESTINATION ${CMAKE_INSTALL_LIBDIR}
         ARCHIVE DESTINATION ${CMAKE_INSTALL_LIBDIR}
-        )
+)
 
 install(FILES ${libvidio_headers} DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/${PROJECT_NAME})
 
