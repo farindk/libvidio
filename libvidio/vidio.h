@@ -61,6 +61,9 @@ LIBVIDIO_API int vidio_get_version_number_patch(void);
 
 // === Generic Types ===
 
+typedef int vidio_bool;
+
+// Many libvidio functions return strings. When not otherwise noted, they have to be release with this function.
 LIBVIDIO_API void vidio_string_free(const char*);
 
 
@@ -72,6 +75,13 @@ struct vidio_fraction
 
 LIBVIDIO_API double vidio_fraction_to_double(const struct vidio_fraction*);
 
+
+
+// === Error Handling ===
+
+// Many libvidio functions return a vidio_error pointer.
+// On success, this pointer is NULL. On failure, the error object has to be released with vidio_error_free().
+// NOTE: this means that you should never ignore this error because it will lead to a memory leak in case of error.
 
 struct vidio_error;
 
@@ -108,6 +118,9 @@ LIBVIDIO_API const char* vidio_error_get_argument(const struct vidio_error*, int
 
 LIBVIDIO_API int vidio_error_get_number_of_arguments(const struct vidio_error*);
 
+// Provide the deeper reason for this error. This may be a longer chain of errors.
+// For example: "Cannot start capturing" because "Cannot open device" because "No access permission".
+// If there is no deeper reason, NULL is returned.
 LIBVIDIO_API const struct vidio_error* vidio_error_get_reason(const struct vidio_error*);
 
 
@@ -117,14 +130,33 @@ LIBVIDIO_API const struct vidio_error* vidio_error_get_reason(const struct vidio
 enum vidio_pixel_format
 {
   vidio_pixel_format_undefined = 0,
+
+  // RGB
   vidio_pixel_format_RGB8 = 1,
   vidio_pixel_format_RGB8_planar = 2,
+
+  // YUV
   vidio_pixel_format_YUV420_planar = 100,
   vidio_pixel_format_YUV422_YUYV = 101,
+
+  // Bayer
   vidio_pixel_format_RGGB8 = 200,
+
+  // compressed
   vidio_pixel_format_MJPEG = 500,
   vidio_pixel_format_H264 = 501,
   vidio_pixel_format_H265 = 502
+};
+
+// A coarser classification of the pixel format. Used for informational purposes only.
+enum vidio_pixel_format_class
+{
+  vidio_pixel_format_class_unknown = 0,
+  vidio_pixel_format_class_RGB = 1,
+  vidio_pixel_format_class_YUV = 2,
+  vidio_pixel_format_class_MJPEG = 3,
+  vidio_pixel_format_class_H264 = 4,
+  vidio_pixel_format_class_H265 = 5
 };
 
 enum vidio_color_channel
@@ -170,7 +202,7 @@ LIBVIDIO_API int vidio_frame_get_height(const struct vidio_frame*);
 
 LIBVIDIO_API enum vidio_pixel_format vidio_frame_get_pixel_format(const struct vidio_frame*);
 
-LIBVIDIO_API int vidio_frame_has_color_plane(const struct vidio_frame*, enum vidio_color_channel);
+LIBVIDIO_API vidio_bool vidio_frame_has_color_plane(const struct vidio_frame*, enum vidio_color_channel);
 
 LIBVIDIO_API uint8_t* vidio_frame_get_color_plane(vidio_frame*, enum vidio_color_channel, int* stride);
 
@@ -181,33 +213,33 @@ LIBVIDIO_API uint64_t vidio_frame_get_timestamp_us(const struct vidio_frame*);
 
 // === Format Conversion ===
 
+// TODO: should return vidio_error. Should we remove this completely in favor of vidio_format_converter, or keep it as
+//       a convenience wrapper around video_format_converter.
 LIBVIDIO_API struct vidio_frame* vidio_frame_convert(const struct vidio_frame*, enum vidio_pixel_format);
 
 
 struct vidio_format_converter;
 
+// TODO: should return vidio_error if format conversion is not supported. Add conversion options?
 LIBVIDIO_API struct vidio_format_converter* vidio_create_converter(enum vidio_pixel_format from, enum vidio_pixel_format to);
 
 LIBVIDIO_API void vidio_format_converter_free(struct vidio_format_converter*);
 
-LIBVIDIO_API struct vidio_frame* vidio_format_converter_convert_uncompressed(struct vidio_format_converter*, const struct vidio_frame*);
-
+// TODO: should return vidio_error
 LIBVIDIO_API void vidio_format_converter_push_compressed(struct vidio_format_converter*, const struct vidio_frame*);
 
+// Returns NULL when no more frames are available.
 LIBVIDIO_API struct vidio_frame* vidio_format_converter_pull_decompressed(struct vidio_format_converter*);
+
+// Convenience function to avoid the push/pull functions above. Note that this will not work when the input stream
+// is compressed with frame reordering that can code a group of frames into one vidio_frame, or delay frames because of
+// the reordering.
+// Use this for simple RGB<->YUV conversions.
+// TODO: should return vidio_error
+LIBVIDIO_API struct vidio_frame* vidio_format_converter_convert_direct(struct vidio_format_converter*, const struct vidio_frame*);
 
 
 // === Video Format ===
-
-enum vidio_pixel_format_class
-{
-  vidio_pixel_format_class_unknown = 0,
-  vidio_pixel_format_class_RGB = 1,
-  vidio_pixel_format_class_YUV = 2,
-  vidio_pixel_format_class_MJPEG = 3,
-  vidio_pixel_format_class_H264 = 4,
-  vidio_pixel_format_class_H265 = 5
-};
 
 LIBVIDIO_API void vidio_video_format_free(const struct vidio_video_format*);
 
@@ -222,7 +254,7 @@ LIBVIDIO_API uint32_t vidio_video_format_get_width(const struct vidio_video_form
 
 LIBVIDIO_API uint32_t vidio_video_format_get_height(const struct vidio_video_format* format);
 
-LIBVIDIO_API int vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format);
+LIBVIDIO_API vidio_bool vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format);
 
 LIBVIDIO_API struct vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
 

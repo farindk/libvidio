@@ -246,7 +246,7 @@ enum vidio_pixel_format vidio_frame_get_pixel_format(const vidio_frame* f)
   return f->get_pixel_format();
 }
 
-int vidio_frame_has_color_plane(const vidio_frame* f, vidio_color_channel c)
+vidio_bool vidio_frame_has_color_plane(const vidio_frame* f, vidio_color_channel c)
 {
   return f->has_plane(c);
 }
@@ -330,7 +330,7 @@ uint32_t vidio_video_format_get_height(const struct vidio_video_format* format)
   return format->get_height();
 }
 
-int vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format)
+vidio_bool vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format)
 {
   return format->has_fixed_framerate();
 }
