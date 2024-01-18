@@ -330,6 +330,11 @@ uint32_t vidio_video_format_get_height(const struct vidio_video_format* format)
   return format->get_height();
 }
 
+int vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format)
+{
+  return format->has_fixed_framerate();
+}
+
 vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format)
 {
   return format->get_framerate();

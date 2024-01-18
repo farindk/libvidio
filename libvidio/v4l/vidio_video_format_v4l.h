@@ -23,6 +23,7 @@
 
 #include <libvidio/vidio_video_format.h>
 #include <linux/videodev2.h>
+#include <optional>
 
 #if WITH_JSON
 #include "nlohmann/json.hpp"
@@ -34,7 +35,7 @@ struct vidio_video_format_v4l : public vidio_video_format
 public:
   vidio_video_format_v4l(v4l2_fmtdesc fmt,
                          uint32_t width, uint32_t height,
-                         vidio_fraction framerate);
+                         std::optional<vidio_fraction> framerate);
 
   vidio_video_format_v4l(const vidio_video_format_v4l& fmt);
 
@@ -50,7 +51,16 @@ public:
 
   uint32_t get_height() const override { return m_height; }
 
-  vidio_fraction get_framerate() const override { return m_framerate; }
+  bool has_fixed_framerate() const override { return !!m_framerate; }
+
+  vidio_fraction get_framerate() const override {
+    if (m_framerate) {
+      return *m_framerate;
+    }
+    else {
+      return {0,1};
+    }
+  }
 
   std::string get_user_description() const override { return {(const char*) m_format.description}; }
 
@@ -69,7 +79,7 @@ public:
 private:
   v4l2_fmtdesc m_format{};
   uint32_t m_width, m_height;
-  vidio_fraction m_framerate;
+  std::optional<vidio_fraction> m_framerate;
 
   vidio_pixel_format_class m_format_class;
 };

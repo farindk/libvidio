@@ -222,6 +222,8 @@ LIBVIDIO_API uint32_t vidio_video_format_get_width(const struct vidio_video_form
 
 LIBVIDIO_API uint32_t vidio_video_format_get_height(const struct vidio_video_format* format);
 
+LIBVIDIO_API int vidio_video_format_has_fixed_framerate(const struct vidio_video_format* format);
+
 LIBVIDIO_API struct vidio_fraction vidio_video_format_get_framerate(const struct vidio_video_format* format);
 
 LIBVIDIO_API enum vidio_pixel_format_class

@@ -39,6 +39,8 @@ public:
 
   virtual uint32_t get_height() const = 0;
 
+  virtual bool has_fixed_framerate() const = 0;
+
   virtual vidio_fraction get_framerate() const = 0;
 
   virtual std::string get_user_description() const = 0;

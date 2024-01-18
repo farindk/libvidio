@@ -68,7 +68,7 @@ static vidio_pixel_format v4l_pixelformat_to_pixel_format(__u32 pixelformat)
 
 vidio_video_format_v4l::vidio_video_format_v4l(v4l2_fmtdesc fmt,
                                                uint32_t width, uint32_t height,
-                                               vidio_fraction framerate)
+                                               std::optional<vidio_fraction> framerate)
 {
   m_format = fmt;
   m_width = width;
@@ -97,8 +97,12 @@ vidio_video_format_v4l::vidio_video_format_v4l(const nlohmann::json& json)
 
   m_width = json["width"];
   m_height = json["height"];
-  m_framerate.numerator = json["framerate_numerator"];
-  m_framerate.denominator = json["framerate_denominator"];
+  if (json.contains("framerate_numerator")) {
+    vidio_fraction framerate{};
+    framerate.numerator = json["framerate_numerator"];
+    framerate.denominator = json["framerate_denominator"];
+    m_framerate = framerate;
+  }
 }
 
 #endif
@@ -108,16 +112,19 @@ std::string vidio_video_format_v4l::serialize(vidio_serialization_format serialf
   if (serialformat == vidio_serialization_format_json) {
 #if WITH_JSON
     nlohmann::json json{
-        {"class",                 "v4l2"},
-        {"format_type",           m_format.type},
-        {"format_flags",          m_format.flags},
-        {"format_pixelformat",    m_format.pixelformat},
-        {"format_mbus_code",      m_format.mbus_code},
-        {"format_description",    (const char*) (m_format.description)},
-        {"width",                 m_width},
-        {"height",                m_height},
-        {"framerate_numerator",   m_framerate.numerator},
-        {"framerate_denominator", m_framerate.denominator}
+        {"class",              "v4l2"},
+        {"format_type",        m_format.type},
+        {"format_flags",       m_format.flags},
+        {"format_pixelformat", m_format.pixelformat},
+        {"format_mbus_code",   m_format.mbus_code},
+        {"format_description", (const char*) (m_format.description)},
+        {"width",              m_width},
+        {"height",             m_height}
+    };
+
+    if (m_framerate) {
+        json["framerate_numerator"] = m_framerate->numerator;
+        json["framerate_denominator"] = m_framerate->denominator;
     };
 
     return json.dump();

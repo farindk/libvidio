@@ -322,7 +322,7 @@ std::vector<vidio_video_format_v4l*> vidio_v4l_raw_device::get_video_formats() c
 
       // There seem to be some devices that do not report a framerate.
       if (r.m_frameintervals.empty()) {
-        auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, {0, 1});
+        auto format = new vidio_video_format_v4l(f.m_fmtdesc, w, h, std::nullopt);
         formats.push_back(format);
       }
     }
