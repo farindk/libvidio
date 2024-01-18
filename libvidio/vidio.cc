@@ -75,7 +75,7 @@ int vidio_get_version_number_patch(void)
 }
 
 
-void vidio_free_string(const char* s)
+void vidio_string_free(const char* s)
 {
   delete[] s;
 }
@@ -88,7 +88,7 @@ static const char* make_vidio_string(const std::string& s)
 }
 
 
-void vidio_error_release(const vidio_error* err)
+void vidio_error_free(const vidio_error* err)
 {
   delete err;
 }
@@ -177,7 +177,7 @@ void vidio_input_devices_free_list(const struct vidio_input_device* const* out_d
 }
 
 
-void vidio_input_device_release(const struct vidio_input_device* device)
+void vidio_input_device_free(const struct vidio_input_device* device)
 {
   delete device;
 }
@@ -226,7 +226,7 @@ double vidio_fraction_to_double(const struct vidio_fraction* fraction)
 }
 
 
-void vidio_frame_release(const vidio_frame* f)
+void vidio_frame_free(const vidio_frame* f)
 {
   delete f;
 }
@@ -395,7 +395,7 @@ void vidio_video_formats_free_list(const struct vidio_video_format* const* list,
   delete[] list;
 }
 
-void vidio_video_format_release(const struct vidio_video_format* format)
+void vidio_video_format_free(const struct vidio_video_format* format)
 {
   delete format;
 }
@@ -441,7 +441,7 @@ vidio_format_converter* vidio_create_converter(vidio_pixel_format from, vidio_pi
   return vidio_format_converter::create(from, to);
 }
 
-void vidio_format_converter_release(vidio_format_converter* converter)
+void vidio_format_converter_free(vidio_format_converter* converter)
 {
   delete converter;
 }

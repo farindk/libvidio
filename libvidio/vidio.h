@@ -61,7 +61,7 @@ LIBVIDIO_API int vidio_get_version_number_patch(void);
 
 // === Generic Types ===
 
-LIBVIDIO_API void vidio_free_string(const char*);
+LIBVIDIO_API void vidio_string_free(const char*);
 
 
 struct vidio_fraction
@@ -93,17 +93,17 @@ enum vidio_error_code
   vidio_error_code_cannot_free_capturing_buffers = 13
 };
 
-LIBVIDIO_API void vidio_error_release(const struct vidio_error*);
+LIBVIDIO_API void vidio_error_free(const struct vidio_error*);
 
 LIBVIDIO_API vidio_error_code vidio_error_get_code(const struct vidio_error*);
 
-// free with vidio_free_string()
+// free with vidio_string_free()
 LIBVIDIO_API const char* vidio_error_get_message(const struct vidio_error*);
 
-// free with vidio_free_string()
+// free with vidio_string_free()
 LIBVIDIO_API const char* vidio_error_get_message_template(const struct vidio_error*);
 
-// free with vidio_free_string()
+// free with vidio_string_free()
 LIBVIDIO_API const char* vidio_error_get_argument(const struct vidio_error*, int n);
 
 LIBVIDIO_API int vidio_error_get_number_of_arguments(const struct vidio_error*);
@@ -162,7 +162,7 @@ enum vidio_device_match
 
 struct vidio_frame;
 
-LIBVIDIO_API void vidio_frame_release(const struct vidio_frame*);
+LIBVIDIO_API void vidio_frame_free(const struct vidio_frame*);
 
 LIBVIDIO_API int vidio_frame_get_width(const struct vidio_frame*);
 
@@ -188,7 +188,7 @@ struct vidio_format_converter;
 
 LIBVIDIO_API struct vidio_format_converter* vidio_create_converter(enum vidio_pixel_format from, enum vidio_pixel_format to);
 
-LIBVIDIO_API void vidio_format_converter_release(struct vidio_format_converter*);
+LIBVIDIO_API void vidio_format_converter_free(struct vidio_format_converter*);
 
 LIBVIDIO_API struct vidio_frame* vidio_format_converter_convert_uncompressed(struct vidio_format_converter*, const struct vidio_frame*);
 
@@ -209,7 +209,7 @@ enum vidio_pixel_format_class
   vidio_pixel_format_class_H265 = 5
 };
 
-LIBVIDIO_API void vidio_video_format_release(const struct vidio_video_format*);
+LIBVIDIO_API void vidio_video_format_free(const struct vidio_video_format*);
 
 // Do not release the returned string.
 LIBVIDIO_API const char* vidio_pixel_format_class_name(enum vidio_pixel_format_class format);
@@ -307,7 +307,7 @@ LIBVIDIO_API const vidio_error* vidio_list_input_devices(const struct vidio_inpu
 
 LIBVIDIO_API void vidio_input_devices_free_list(const struct vidio_input_device* const* devices, int also_free_devices);
 
-LIBVIDIO_API void vidio_input_device_release(const struct vidio_input_device* device);
+LIBVIDIO_API void vidio_input_device_free(const struct vidio_input_device* device);
 
 // If JSON has not been compiled in, NULL is returned.
 LIBVIDIO_API const char* vidio_input_serialize(const struct vidio_input* input, enum vidio_serialization_format);

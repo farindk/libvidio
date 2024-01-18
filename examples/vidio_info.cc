@@ -74,7 +74,7 @@ bool save_frame(const vidio_frame* frame)
     printf("save %d\n", cnt);
     cnt++;
 
-    vidio_frame_release(rgbFrame);
+    vidio_frame_free(rgbFrame);
   }
 
   //vidio_frame_release(frame);
@@ -104,7 +104,7 @@ public:
 
         if (end) {
           auto* err = vidio_input_stop_capturing(m_input);
-          vidio_error_release(err);
+          vidio_error_free(err);
         }
       }
     }
@@ -153,7 +153,7 @@ void show_err(const vidio_error* err, bool release = true)
 {
   const char* msg = vidio_error_get_message(err);
   std::cerr << "ERROR: " << msg << "\n";
-  vidio_free_string(msg);
+  vidio_string_free(msg);
 
   const auto* reason = vidio_error_get_reason(err);
   if (reason) {
@@ -162,7 +162,7 @@ void show_err(const vidio_error* err, bool release = true)
   }
 
   if (release) {
-    vidio_error_release(err);
+    vidio_error_free(err);
   }
 }
 
@@ -185,7 +185,7 @@ int main(int argc, char** argv)
   for (size_t i = 0; devices[i]; i++) {
     auto name = vidio_input_get_display_name((vidio_input*) devices[i]);
     printf("> %s\n", name);
-    vidio_free_string(name);
+    vidio_string_free(name);
 
     size_t nFormats;
     const struct vidio_video_format* const* formats = vidio_input_get_video_formats((vidio_input*) devices[i],
@@ -200,7 +200,7 @@ int main(int argc, char** argv)
                 << vidio_video_format_get_height(formats[f])
                 << " @ " << vidio_fraction_to_double(&framerate) << "\n";
 
-      vidio_free_string(formatname);
+      vidio_string_free(formatname);
     }
 
     size_t idx = 0;
@@ -223,11 +223,11 @@ int main(int argc, char** argv)
 
         const char* devStr = vidio_input_serialize((vidio_input*) selected_device, vidio_serialization_format_json);
         std::cout << "DEVICE:\n" << devStr << "\n";
-        vidio_free_string(devStr);
+        vidio_string_free(devStr);
 
         const char* fmtStr = vidio_video_format_serialize(selected_format, vidio_serialization_format_json);
         std::cout << "FORMAT:\n" << fmtStr << "\n";
-        vidio_free_string(fmtStr);
+        vidio_string_free(fmtStr);
 
         vidio_video_formats_free_list(formats, true);
         break;
@@ -243,12 +243,12 @@ int main(int argc, char** argv)
   StorageProcess storage(selected_input);
   vidio_input_set_message_callback(selected_input, message_callback, &storage);
   err = vidio_input_start_capturing(selected_input);
-  vidio_error_release(err);
+  vidio_error_free(err);
 
   storage.run();
 
   vidio_input_devices_free_list(devices, true);
-  vidio_format_converter_release(converter);
+  vidio_format_converter_free(converter);
 
   return 0;
 }
