@@ -157,7 +157,7 @@ vidio_format_converter* converter = vidio_create_format_converter(vidio_video_fo
 Then, you can push input frames into the converter and retrieve converted frames:
 
 ````c++
-    vidio_format_converter_push_compressed(converter, frame);
+vidio_format_converter_push_compressed(converter, frame);
 
 while (vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter)) {
   // process rgbFrame
