@@ -63,9 +63,9 @@ static struct option long_options[] = {
 
 void show_help(std::ostream& ostr)
 {
-  ostr << " vidio-info    v" << vidio_get_version() << "\n"
+  ostr << " vidio-grab    v" << vidio_get_version() << "\n"
        << "------------------------\n"
-       << "usage: vidio-info [options]\n"
+       << "usage: vidio-grab [options]\n"
        << "\n"
        << "options:\n"
        << "  -c, --camera #       number of camera\n"

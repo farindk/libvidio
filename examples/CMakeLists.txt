@@ -9,23 +9,23 @@ if (MSVC)
     include_directories("extra")
 endif ()
 
-add_executable(vidio-info ${getopt_sources}
-        vidio_info.cc
+add_executable(vidio-grab ${getopt_sources}
+        vidio_grab.cc
 )
 
-option(WITH_SDL "vidio-info with SDL output" ON)
+option(WITH_SDL "vidio-grab with SDL output" ON)
 if (WITH_SDL)
     find_package(SDL2)
 endif()
 
 
 if (SDL2_FOUND)
-    target_sources(vidio-info PRIVATE sdl_window.h sdl_window.cc)
-    target_compile_definitions(vidio-info PRIVATE WITH_SDL)
-    target_include_directories(vidio-info PRIVATE ${SDL2_INCLUDE_DIRS})
-    target_link_libraries(vidio-info PRIVATE ${SDL2_LIBRARIES})
+    target_sources(vidio-grab PRIVATE sdl_window.h sdl_window.cc)
+    target_compile_definitions(vidio-grab PRIVATE WITH_SDL)
+    target_include_directories(vidio-grab PRIVATE ${SDL2_INCLUDE_DIRS})
+    target_link_libraries(vidio-grab PRIVATE ${SDL2_LIBRARIES})
 endif ()
 
-target_link_libraries(vidio-info PRIVATE vidio)
-install(TARGETS vidio-info RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
-# install(FILES vidio-info.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+target_link_libraries(vidio-grab PRIVATE vidio)
+install(TARGETS vidio-grab RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+# install(FILES vidio-grab.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)

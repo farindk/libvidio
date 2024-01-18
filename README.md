@@ -1,6 +1,11 @@
-# libvidio
 
+# libvidio - Video Capturing Library
 
+libvidio provides a simple to use C interface for video input.
+Currently, it supports V4L2 Linux cameras, but the plan is to extend this to other systems and camera interfaces.
+
+It includes a simple test program `vidio-grab` to show connected cameras and the formats they provide.
+It can also show live video and capture to image files.
 
 ## Getting started
 
