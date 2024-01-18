@@ -14,6 +14,8 @@ It can also show live video and capture to image files.
 While libvidio itself is written in C++, it has a pure C interface, which is a very thin wrapper around the C++ classes.
 This ensures ABI backwards compatibility and easy integration into other languages.
 
+While we are on a version 0.y.z, the API is unstable.
+
 ## Step by step tutorial
 
 ### Get connected cameras
