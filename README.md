@@ -189,5 +189,5 @@ and show the live video or save the images to disk.
 libvidio is distributed under the terms of the GNU General Public License (GPL).
 It is also available with a commercial license for closed source applications. Contact me for details.
 
-Copyright (c) 2023-2024 Dirk Farin
+Copyright (c) 2023-2024 Dirk Farin<br>
 Contact: Dirk Farin <dirk.farin@gmail.com>
