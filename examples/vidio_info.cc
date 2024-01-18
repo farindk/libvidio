@@ -303,6 +303,8 @@ int main(int argc, char** argv)
   std::cout << "format: " << format_name(selected_format) << "\n";
 
 
+  // prepare capturing format
+
   const vidio_video_format* actual_format = nullptr; // vidio_video_format_clone(formats[0]);
   err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr,
                                       &actual_format);
@@ -311,8 +313,14 @@ int main(int argc, char** argv)
     return 10;
   }
 
-  converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
-                                            vidio_pixel_format_RGB8);
+  // prepare converter (for PPM output)
+
+  if (!option_output_directory.empty()) {
+    converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
+                                              vidio_pixel_format_RGB8);
+  }
+
+  // do capturing
 
   vidio_video_formats_free_list(formats, true);
 
@@ -321,6 +329,8 @@ int main(int argc, char** argv)
 
   err = capturingLoop.start_with_vidio_input((vidio_input*) selected_device, vidio_capturing_loop::run_mode::sync);
   show_err(err);
+
+  // cleanup
 
   vidio_input_devices_free_list(devices, true);
   vidio_format_converter_free(converter);
