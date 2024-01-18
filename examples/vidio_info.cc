@@ -19,19 +19,34 @@
  */
 
 #include "libvidio/vidio.h"
+#include "libvidio/vidio_capturing_loop.h"
 #include <cstdio>
 #include <iostream>
-#include <mutex>
-#include <condition_variable>
-#include <unistd.h>
 
+#if WITH_SDL2
+#include "sdl_window.h"
+#endif
 
 vidio_format_converter* converter = nullptr;
+vidio_capturing_loop capturingLoop;
+
+#if WITH_SDL2
+sdl_window sdlWindow;
+#endif
 
 static int cnt = 1;
 
-bool save_frame(const vidio_frame* frame)
+void output_frame(const vidio_frame* frame)
 {
+#if WITH_SDL2
+  sdlWindow.show_image(frame);
+
+  if (sdlWindow.check_close_button()) {
+    capturingLoop.stop();
+  }
+  return;
+#endif
+
   std::cout << "format: ";
   switch (vidio_frame_get_pixel_format(frame)) {
     case vidio_pixel_format_YUV422_YUYV:
@@ -79,78 +94,26 @@ bool save_frame(const vidio_frame* frame)
 
   //vidio_frame_release(frame);
 
-  return cnt >= 150;
+  if (cnt >= 150) {
+    capturingLoop.stop();
+  }
 }
 
 
-class StorageProcess
+void message_callback(vidio_input_message msg)
 {
-public:
-  explicit StorageProcess(vidio_input* i) : m_input(i) {}
-
-  void run()
-  {
-    while (!m_quit) {
-      {
-        std::unique_lock<std::mutex> lock(mutex);
-        while (vidio_input_peek_next_frame(m_input) == nullptr && !m_quit) {
-          cond.wait(lock);
-        }
-      }
-
-      while (const vidio_frame* frame = vidio_input_peek_next_frame(m_input)) {
-        bool end = save_frame(frame);
-        vidio_input_pop_next_frame(m_input);
-
-        if (end) {
-          auto* err = vidio_input_stop_capturing(m_input);
-          vidio_error_free(err);
-        }
-      }
-    }
-  }
-
-  void frame_arrived()
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    cond.notify_one();
-  }
-
-  void stop()
-  {
-    std::unique_lock<std::mutex> lock(mutex);
-    m_quit = true;
-    cond.notify_one();
-  }
-
-private:
-  vidio_input* m_input;
-  bool m_quit = false;
-
-  std::mutex mutex;
-  std::condition_variable cond;
-};
-
-
-void message_callback(vidio_input_message msg, void* userData)
-{
-  auto* storage = (StorageProcess*) userData;
-
-  if (msg == vidio_input_message_new_frame) {
-    storage->frame_arrived();
-  }
-  else if (msg == vidio_input_message_end_of_stream) {
-    printf("================ STOP =================\n");
-    storage->stop();
-  }
-  else if (msg == vidio_input_message_input_overflow) {
-    printf("OVERFLOW\n");
+  if (msg == vidio_input_message_input_overflow) {
+    printf("WARNING: buffer overflow\n");
   }
 }
 
 
 void show_err(const vidio_error* err, bool release = true)
 {
+  if (!err) {
+    return;
+  }
+
   const char* msg = vidio_error_get_message(err);
   std::cerr << "ERROR: " << msg << "\n";
   vidio_string_free(msg);
@@ -218,8 +181,8 @@ int main(int argc, char** argv)
           return 10;
         }
 
-        converter = vidio_create_converter(vidio_video_format_get_pixel_format(selected_format),
-                                           vidio_pixel_format_RGB8);
+        converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
+                                                  vidio_pixel_format_RGB8);
 
         const char* devStr = vidio_input_serialize((vidio_input*) selected_device, vidio_serialization_format_json);
         std::cout << "DEVICE:\n" << devStr << "\n";
@@ -240,15 +203,19 @@ int main(int argc, char** argv)
 
 
   auto* selected_input = (vidio_input*) selected_device;
-  StorageProcess storage(selected_input);
-  vidio_input_set_message_callback(selected_input, message_callback, &storage);
-  err = vidio_input_start_capturing(selected_input);
-  vidio_error_free(err);
 
-  storage.run();
+  capturingLoop.set_on_frame_received(output_frame);
+  capturingLoop.set_on_stream_message(message_callback);
+
+  err = capturingLoop.start_with_vidio_input(selected_input, vidio_capturing_loop::run_mode::sync);
+  show_err(err);
 
   vidio_input_devices_free_list(devices, true);
   vidio_format_converter_free(converter);
+
+#if WITH_SDL2
+  sdlWindow.close();
+#endif
 
   return 0;
 }

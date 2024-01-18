@@ -221,7 +221,7 @@ LIBVIDIO_API struct vidio_frame* vidio_frame_convert(const struct vidio_frame*, 
 struct vidio_format_converter;
 
 // TODO: should return vidio_error if format conversion is not supported. Add conversion options?
-LIBVIDIO_API struct vidio_format_converter* vidio_create_converter(enum vidio_pixel_format from, enum vidio_pixel_format to);
+LIBVIDIO_API struct vidio_format_converter* vidio_create_format_converter(enum vidio_pixel_format from, enum vidio_pixel_format to);
 
 LIBVIDIO_API void vidio_format_converter_free(struct vidio_format_converter*);
 

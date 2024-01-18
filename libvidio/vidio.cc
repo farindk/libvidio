@@ -436,7 +436,7 @@ vidio_frame* vidio_frame_convert(const vidio_frame* f, vidio_pixel_format format
 }
 
 
-vidio_format_converter* vidio_create_converter(vidio_pixel_format from, vidio_pixel_format to)
+vidio_format_converter* vidio_create_format_converter(vidio_pixel_format from, vidio_pixel_format to)
 {
   return vidio_format_converter::create(from, to);
 }

@@ -38,35 +38,62 @@ class vidio_capturing_loop
 public:
   void set_on_frame_received(std::function<void(const vidio_frame*)> f) { m_on_frame_received = std::move(f); }
 
+  // Like 'vidio_input_message_end_of_stream', but the message is delayed until all frames have been extracted from the input and processed.
   void set_on_stream_ended(std::function<void()> f) { m_on_stream_ended = std::move(f); }
 
+  // Call back for any messages except 'vidio_input_message_new_frame' and 'vidio_input_message_end_of_stream'.
+  // Those are handled by the two callbacks above.
+  void set_on_stream_message(std::function<void(vidio_input_message)> f) { m_on_stream_message = std::move(f); }
+
+  enum class run_mode {
+    async,
+    sync
+  };
+
+
   // Starts a new thread that runs the capturing loop in the background.
-  const vidio_error* start_with_vidio_input(vidio_input* input)
+  const vidio_error* start_with_vidio_input(vidio_input* input, run_mode mode = run_mode::async)
   {
     assert(!m_active);
     m_input = input;
     m_active = true;
-
-    m_thread = std::thread(&vidio_capturing_loop::loop, this);
+    m_mode = mode;
 
     // start vidio input
 
     vidio_input_set_message_callback(m_input, on_vidio_message, this);
 
-    return vidio_input_start_capturing(m_input);
+    auto* err = vidio_input_start_capturing(m_input);
+    if (err) {
+      return err;
+    }
+
+    if (mode == run_mode::async) {
+      m_thread = std::thread(&vidio_capturing_loop::loop, this);
+    }
+    else {
+      loop();
+    }
+
+    return nullptr;
   }
+
 
   // Stop the vidio_input. Will emit an 'on_stream_ended' callback.
   void stop()
   {
     m_active = false;
     m_cond.notify_one();
-    m_thread.join();
+
+    if (m_mode == run_mode::async) {
+      m_thread.join();
+    }
   }
 
 private:
   vidio_input* m_input;
   bool m_active = false;
+  run_mode m_mode;
 
   std::thread m_thread;
   std::mutex m_mutex;
@@ -74,6 +101,7 @@ private:
 
   std::function<void(const vidio_frame*)> m_on_frame_received;
   std::function<void()> m_on_stream_ended;
+  std::function<void(vidio_input_message)> m_on_stream_message;
 
   void loop()
   {
@@ -128,14 +156,17 @@ private:
   {
     auto* me = static_cast<vidio_capturing_loop*>(userData);
 
-    if (msg == vidio_input_message_end_of_stream) {
+    if (msg == vidio_input_message_new_frame) {
+      me->m_cond.notify_one();
+    }
+    else if (msg == vidio_input_message_end_of_stream) {
       if (me->m_active) {
         me->m_active = false;
         me->m_cond.notify_one();
       }
     }
-    else if (msg == vidio_input_message_new_frame) {
-      me->m_cond.notify_one();
+    else {
+      me->m_on_stream_message(msg);
     }
   }
 };
