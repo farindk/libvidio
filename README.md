@@ -43,7 +43,7 @@ The `numDevices` argument can be omitted (set to NULL) if you don't need it.
 Later, we will free the list of devices with
 
 ````c++
-  vidio_input_devices_free_list(devices, true);
+vidio_input_devices_free_list(devices, true);
 ````
 
 ### Error handling concepts
