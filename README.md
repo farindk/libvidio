@@ -4,95 +4,190 @@
 libvidio provides a simple to use C interface for video input.
 Currently, it supports V4L2 Linux cameras, but the plan is to extend this to other systems and camera interfaces.
 
+libvidio also handles decoding compressed input video (MJPEG, H264) and converting the numerous color spaces into
+something that the application can work with.
+
 It includes a simple test program `vidio-grab` to show connected cameras and the formats they provide.
 It can also show live video and capture to image files.
 
-## Getting started
+# API
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+While libvidio itself is written in C++, it has a pure C interface, which is a very thin wrapper around the C++ classes.
+This ensures ABI backwards compatibility and easy integration into other languages.
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## Step by step tutorial
 
-## Add your files
+### Get connected cameras
 
-- [ ] [Create](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#create-a-file) or [upload](https://docs.gitlab.com/ee/user/project/repository/web_editor.html#upload-a-file) files
-- [ ] [Add files using the command line](https://docs.gitlab.com/ee/gitlab-basics/add-file.html#add-a-file-using-the-command-line) or push an existing Git repository with the following command:
+First, we need to get a list of connected cameras:
+````c++
+  vidio_input_device* const* devices;
+  size_t numDevices;
+  const vidio_error* err = vidio_list_input_devices(nullptr, &devices, &numDevices);
+  if (err) {
+    const char* msg = vidio_error_get_message(err);
+    ...
+    vidio_string_free(msg);
+    vidio_error_free(err);
+  }
+````
 
-```
-cd existing_repo
-git remote add origin https://lab.imagemeter.de/farindk/libvidio.git
-git branch -M main
-git push -uf origin main
-```
+This allocates a list of pointers to the `vidio_input_device` objects. This list is NULL-terminated.
+The `numDevices` argument can be omitted (set to NULL) if you don't need it.
 
-## Integrate with your tools
+Later, we will free the list of devices with
+````c++
+  vidio_input_devices_free_list(devices, true);
+````
 
-- [ ] [Set up project integrations](https://lab.imagemeter.de/farindk/libvidio/-/settings/integrations)
+### Error handling concepts
 
-## Collaborate with your team
+Many functions return a `vidio_error` on error. On success, NULL is returned.
+You **have to** free this error with `vidio_error_free()` even if you want to ignore it (which is not a good idea anyway).
+It is legal to call `vidio_error_free()` with a NULL pointer. Thus, simply calling this every time is legal.
 
-- [ ] [Invite team members and collaborators](https://docs.gitlab.com/ee/user/project/members/)
-- [ ] [Create a new merge request](https://docs.gitlab.com/ee/user/project/merge_requests/creating_merge_requests.html)
-- [ ] [Automatically close issues from merge requests](https://docs.gitlab.com/ee/user/project/issues/managing_issues.html#closing-issues-automatically)
-- [ ] [Enable merge request approvals](https://docs.gitlab.com/ee/user/project/merge_requests/approvals/)
-- [ ] [Set auto-merge](https://docs.gitlab.com/ee/user/project/merge_requests/merge_when_pipeline_succeeds.html)
+Errors have an error code, but also a text message. Since some errors provide additional information (like the camera device),
+the text message can also be obtained as a template string with placeholders for the parameters ('{0}', '{1}', ...).
+This string may be translated.
 
-## Test and Deploy
+### Get list of video formats the camera supports
 
-Use the built-in continuous integration in GitLab.
+This is similar to getting the list of cameras:
+````c++
+  const struct vidio_video_format* const* formats;
+  formats = vidio_input_get_video_formats((vidio_input*) selected_device, nullptr);
+````
+The list is also NULL-terminated. We omitted the list size in this example for a change.
 
-- [ ] [Get started with GitLab CI/CD](https://docs.gitlab.com/ee/ci/quick_start/index.html)
-- [ ] [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/ee/user/application_security/sast/)
-- [ ] [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/ee/topics/autodevops/requirements.html)
-- [ ] [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/ee/user/clusters/agent/)
-- [ ] [Set up protected environments](https://docs.gitlab.com/ee/ci/environments/protected_environments.html)
+### Set capturing format
 
-***
+From the list of supported formats, we can select one
+````c++
+vidio_input_device* selected_device = devices[...];
+vidio_video_format* selected_format = formats[...];
+err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr, nullptr);
+````
 
-# Editing this README
+Note that the `vidio_input_device` is casted to `vidio_input`.
+This is because there is a *class* hierarchy of input devices. As `vidio_input_device` is derived from `vidio_input`,
+it can be used at all places where a `vidio_input` argument is needed.
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+### Start capturing (C interface)
 
-## Suggestions for a good README
+Before we start the camera, we define a callback function that will be notified when there are new frames,
+some error occurs, or the end of stream is reached (unlikely for cameras, but possible with future file inputs). 
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+````c++
+void on_vidio_message(vidio_input_message msg, void* userData)
+{
+  if (msg == vidio_input_message_new_frame) {
+    ...
+  }
+}
 
-## Name
-Choose a self-explaining name for your project.
+vidio_input_set_message_callback(input, on_vidio_message, userPtr);
+````
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+Now, we can finally start the camera:
+````c++
+err = vidio_input_start_capturing((vidio_input*)selected_device);
+````
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+This function is non-blocking. It will start the capturing in a background process.
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+The work done in the callback should be as fast as possible as this runs in the main capturing loop.
+That means that you should not process the captured images in this callback, but get and process the frames
+in a separate thread.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+When a `vidio_input_message_new_frame` message is received, you can get the frames that are currently queued up
+in the `vidio_input` like this:
+````c++
+while (const vidio_frame* frame = vidio_input_peek_next_frame(input)) {
+  // process image
+  ...
+  
+  vidio_input_pop_next_frame(m_input);
+}
+````
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+### Start capturing (c++ interface)
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+As extracting the frames from the `vidio_input` should run in a separate thread and this is non-trivial boilerplate code,
+there is a convenience class implemented in the header-only C++ class `vidio_capturing_loop`.
+This class runs a separate thread that retrieves frames from the camera and calls a callback function for each frame.
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+````c++
+vidio_capturing_loop capturingLoop;
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+capturingLoop.set_on_frame_received([](const vidio_frame* frame) {
+  // do processing
+});
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+err = capturingLoop.start_with_vidio_input(input, vidio_capturing_loop::run_mode::async);
+````
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+With the `run_mode` argument, you can decide whether the capturing loop should be blocking (until the stream ends or
+streaming is stopped explicitly) or run non-blocking in a separate thread.
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
+vidio_pixel_format_RGB8);
+}
 
-## License
-For open source projects, say how it is licensed.
+### Format conversion
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+Cameras can output video in many different formats.
+To simplify this for the application, libvidio can convert the camera format to a format the application can work with.
+
+First, create a converter object to convert between two pixel formats:
+````c++
+vidio_format_converter* converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
+                                                                  vidio_pixel_format_RGB8);
+````
+
+Then, you can push input frames into the converter and retrieve converted frames:
+````c++
+    vidio_format_converter_push_compressed(converter, frame);
+
+    while (vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter)) {
+      // process rgbFrame
+      ...
+      
+      vidio_frame_free(rgbFrame);
+    }
+````
+
+Since the input can be compressed frames (H.264) there is no simple 1:1 relation between the input and output and
+we need a loop to get all available decoded frames.
+
+However, if we are sure that we are only converting simple pixel images (like YUV to RGB), we can also use
+````c++
+struct vidio_frame* vidio_format_converter_convert_direct(struct vidio_format_converter*,
+                                                          const struct vidio_frame* input);
+````
+
+# Compiling
+
+This library uses the CMake build system.
+You will need the ffmpeg libraries as a dependency.
+The `vidio-grab` example tool additionally uses SDL2 for display.
+
+Build the library with these steps:
+````shell
+mkdir build
+cd build
+cmake .. -DCMAKE_INSTALL_PREFIX=<?>
+make && make install
+````
+
+# Example program
+
+The `vidio-grab` example is a simple tool to list the connected cameras, show the supported formats
+and show the live video or save the images to disk.
+
+# License
+
+libvidio is distributed under the terms of the GNU General Public License (GPL).
+It is also available with a commercial license for closed source applications. Contact me for details.
+
+Copyright (c) 2023-2024 Dirk Farin
+Contact: Dirk Farin dirk.farin@gmail.com
