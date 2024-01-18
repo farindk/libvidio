@@ -61,12 +61,41 @@ option(WITH_VIDEO4LINUX2 "Include Video4Linux2 backend" ON)
 
 option(WITH_JSON "Enable JSON serialization" ON)
 
+option(WITH_SDL "vidio-grab with SDL output" ON)
+if (WITH_SDL)
+    find_package(SDL2)
+endif()
+
+
 # ffmpeg
 
 option(WITH_FFMPEG "FFMPEG decoders" ON)
 if (WITH_FFMPEG)
     find_package(FFMPEG COMPONENTS avcodec avutil swscale)
 endif ()
+
+# --- show configuration summary
+
+macro(feature_message description variable cmake_option)
+    if (${variable})
+        set(active "on ")
+    else()
+        set(active "off")
+    endif()
+
+    string(LENGTH "${description}" len)
+    math(EXPR fill "39 - ${len}")
+    string(SUBSTRING "                                                " 0 ${fill} filler)
+    message("${description}${filler}: ${active}   (${cmake_option})")
+    unset(msg)
+endmacro()
+
+
+message("----- configuration summary -----")
+feature_message("Linux V4L2 camera backend" WITH_VIDEO4LINUX2 "WITH_VIDEO4LINUX2")
+feature_message("vidio-grab with video display" SDL2_FOUND "WITH_SDL")
+feature_message("configuration serialization to JSON" WITH_JSON "WITH_JSON")
+message("---------------------------------")
 
 # --- Create libvidio pkgconfig file
 

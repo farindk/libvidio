@@ -13,12 +13,6 @@ add_executable(vidio-grab ${getopt_sources}
         vidio_grab.cc
 )
 
-option(WITH_SDL "vidio-grab with SDL output" ON)
-if (WITH_SDL)
-    find_package(SDL2)
-endif()
-
-
 if (SDL2_FOUND)
     target_sources(vidio-grab PRIVATE sdl_window.h sdl_window.cc)
     target_compile_definitions(vidio-grab PRIVATE WITH_SDL)
