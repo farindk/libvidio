@@ -110,7 +110,7 @@ while (const vidio_frame* frame = vidio_input_peek_next_frame(input)) {
 }
 ````
 
-### Start capturing (c++ interface)
+### Start capturing (C++ interface)
 
 As extracting the frames from the `vidio_input` should run in a separate thread and this is non-trivial boilerplate code,
 there is a convenience class implemented in the header-only C++ class `vidio_capturing_loop`.
@@ -190,4 +190,4 @@ libvidio is distributed under the terms of the GNU General Public License (GPL).
 It is also available with a commercial license for closed source applications. Contact me for details.
 
 Copyright (c) 2023-2024 Dirk Farin
-Contact: Dirk Farin dirk.farin@gmail.com
+Contact: Dirk Farin <dirk.farin@gmail.com>
