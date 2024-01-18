@@ -1,4 +1,3 @@
-
 # libvidio - Video Capturing Library
 
 libvidio provides a simple to use C interface for video input.
@@ -20,22 +19,24 @@ This ensures ABI backwards compatibility and easy integration into other languag
 ### Get connected cameras
 
 First, we need to get a list of connected cameras:
+
 ````c++
-  vidio_input_device* const* devices;
-  size_t numDevices;
-  const vidio_error* err = vidio_list_input_devices(nullptr, &devices, &numDevices);
-  if (err) {
-    const char* msg = vidio_error_get_message(err);
-    ...
-    vidio_string_free(msg);
-    vidio_error_free(err);
-  }
+vidio_input_device* const* devices;
+size_t numDevices;
+const vidio_error* err = vidio_list_input_devices(nullptr, &devices, &numDevices);
+if (err) {
+  const char* msg = vidio_error_get_message(err);
+  ...
+  vidio_string_free(msg);
+  vidio_error_free(err);
+}
 ````
 
 This allocates a list of pointers to the `vidio_input_device` objects. This list is NULL-terminated.
 The `numDevices` argument can be omitted (set to NULL) if you don't need it.
 
 Later, we will free the list of devices with
+
 ````c++
   vidio_input_devices_free_list(devices, true);
 ````
@@ -53,18 +54,22 @@ This string may be translated.
 ### Get list of video formats the camera supports
 
 This is similar to getting the list of cameras:
+
 ````c++
-  const struct vidio_video_format* const* formats;
-  formats = vidio_input_get_video_formats((vidio_input*) selected_device, nullptr);
+const struct vidio_video_format* const* formats;
+formats = vidio_input_get_video_formats((vidio_input*) selected_device, nullptr);
 ````
+
 The list is also NULL-terminated. We omitted the list size in this example for a change.
 
 ### Set capturing format
 
 From the list of supported formats, we can select one
+
 ````c++
 vidio_input_device* selected_device = devices[...];
 vidio_video_format* selected_format = formats[...];
+
 err = vidio_input_configure_capture((vidio_input*) selected_device, selected_format, nullptr, nullptr);
 ````
 
@@ -75,7 +80,7 @@ it can be used at all places where a `vidio_input` argument is needed.
 ### Start capturing (C interface)
 
 Before we start the camera, we define a callback function that will be notified when there are new frames,
-some error occurs, or the end of stream is reached (unlikely for cameras, but possible with future file inputs). 
+some error occurs, or the end of stream is reached (unlikely for cameras, but possible with future file inputs).
 
 ````c++
 void on_vidio_message(vidio_input_message msg, void* userData)
@@ -89,6 +94,7 @@ vidio_input_set_message_callback(input, on_vidio_message, userPtr);
 ````
 
 Now, we can finally start the camera:
+
 ````c++
 err = vidio_input_start_capturing((vidio_input*)selected_device);
 ````
@@ -101,6 +107,7 @@ in a separate thread.
 
 When a `vidio_input_message_new_frame` message is received, you can get the frames that are currently queued up
 in the `vidio_input` like this:
+
 ````c++
 while (const vidio_frame* frame = vidio_input_peek_next_frame(input)) {
   // process image
@@ -139,27 +146,30 @@ Cameras can output video in many different formats.
 To simplify this for the application, libvidio can convert the camera format to a format the application can work with.
 
 First, create a converter object to convert between two pixel formats:
+
 ````c++
 vidio_format_converter* converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
                                                                   vidio_pixel_format_RGB8);
 ````
 
 Then, you can push input frames into the converter and retrieve converted frames:
+
 ````c++
     vidio_format_converter_push_compressed(converter, frame);
 
-    while (vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter)) {
-      // process rgbFrame
-      ...
-      
-      vidio_frame_free(rgbFrame);
-    }
+while (vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter)) {
+  // process rgbFrame
+  ...
+
+  vidio_frame_free(rgbFrame);
+}
 ````
 
 Since the input can be compressed frames (H.264) there is no simple 1:1 relation between the input and output and
 we need a loop to get all available decoded frames.
 
 However, if we are sure that we are only converting simple pixel images (like YUV to RGB), we can also use
+
 ````c++
 struct vidio_frame* vidio_format_converter_convert_direct(struct vidio_format_converter*,
                                                           const struct vidio_frame* input);
@@ -168,16 +178,22 @@ struct vidio_frame* vidio_format_converter_convert_direct(struct vidio_format_co
 # Compiling
 
 This library uses the CMake build system.
-You will need the ffmpeg libraries as a dependency.
-The `vidio-grab` example tool additionally uses SDL2 for display.
-
 Build the library with these steps:
+
 ````shell
 mkdir build
 cd build
 cmake .. -DCMAKE_INSTALL_PREFIX=<?>
 make && make install
 ````
+
+## Dependencies
+
+| Library       | Required | Description                                                                                                                                            |
+|---------------|----------|--------------------------------------------------------------------------------------------------------------------------------------------------------|
+| ffmpeg        | yes      | If desired, we could make this optional, but that would drastically reduce the number of available format conversions.                                 |
+| SDL2          | no       | Only for the live video display in the `vidio-grab` example tool.                                                                                      |
+| nlohmann-json | no       | For serializing configurations to JSON (useful for saving application preferences). This is integrated as a git submodule in the `third-party` folder. |
 
 # Example program
 
