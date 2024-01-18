@@ -195,6 +195,12 @@ make && make install
 | SDL2          | no       | Only for the live video display in the `vidio-grab` example tool.                                                                                      |
 | nlohmann-json | no       | For serializing configurations to JSON (useful for saving application preferences). This is integrated as a git submodule in the `third-party` folder. |
 
+In order to install nlohmann-json, do
+````shell
+git submodule init
+git submodule update
+````
+
 # Example program
 
 The `vidio-grab` example is a simple tool to list the connected cameras, show the supported formats
