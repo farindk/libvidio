@@ -13,15 +13,15 @@ add_executable(vidio-info ${getopt_sources}
         vidio_info.cc
 )
 
-option(ENABLE_SDL2 "Enable SDL2" ON)
-if (ENABLE_SDL2)
+option(WITH_SDL "vidio-info with SDL output" ON)
+if (WITH_SDL)
     find_package(SDL2)
 endif()
 
 
 if (SDL2_FOUND)
     target_sources(vidio-info PRIVATE sdl_window.h sdl_window.cc)
-    target_compile_definitions(vidio-info PRIVATE WITH_SDL2)
+    target_compile_definitions(vidio-info PRIVATE WITH_SDL)
     target_include_directories(vidio-info PRIVATE ${SDL2_INCLUDE_DIRS})
     target_link_libraries(vidio-info PRIVATE ${SDL2_LIBRARIES})
 endif ()

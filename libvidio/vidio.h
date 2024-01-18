@@ -45,7 +45,7 @@ extern "C" {
 
 /* === Version Numbers === */
 
-// Version string of linked libheif library.
+// Version string of linked libheif library. You do not have to free the string.
 LIBVIDIO_API const char* vidio_get_version(void);
 
 // BCD-coded numeric version of linked libheif library, encoded as 0xHHMMLL00.
@@ -379,6 +379,7 @@ LIBVIDIO_API const struct vidio_error* vidio_input_start_capturing(struct vidio_
 
 LIBVIDIO_API const struct vidio_error* vidio_input_stop_capturing(struct vidio_input* input);
 
+// Do not free the returned frame. It will be released or reused in vidio_input_pop_next_frame().
 LIBVIDIO_API const struct vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
 
 LIBVIDIO_API void vidio_input_pop_next_frame(struct vidio_input* input);

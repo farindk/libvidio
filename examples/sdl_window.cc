@@ -54,7 +54,7 @@ void sdl_window::open(const vidio_frame* frame)
 
   int width, height;
   width = vidio_frame_get_width(frame);
-  height = vidio_frame_get_width(frame);
+  height = vidio_frame_get_height(frame);
 
   const char* window_title = "Live camera view";
   mWindow = SDL_CreateWindow(window_title,
