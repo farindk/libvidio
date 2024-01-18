@@ -121,6 +121,7 @@ enum vidio_pixel_format
   vidio_pixel_format_RGB8_planar = 2,
   vidio_pixel_format_YUV420_planar = 100,
   vidio_pixel_format_YUV422_YUYV = 101,
+  vidio_pixel_format_RGGB8 = 200,
   vidio_pixel_format_MJPEG = 500,
   vidio_pixel_format_H264 = 501,
   vidio_pixel_format_H265 = 502

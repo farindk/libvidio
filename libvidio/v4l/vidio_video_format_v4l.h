@@ -36,11 +36,15 @@ public:
                          uint32_t width, uint32_t height,
                          vidio_fraction framerate);
 
+  vidio_video_format_v4l(const vidio_video_format_v4l& fmt);
+
 #if WITH_JSON
 
   vidio_video_format_v4l(const nlohmann::json& json);
 
 #endif
+
+  vidio_video_format* clone() const override;
 
   uint32_t get_width() const override { return m_width; }
 
@@ -53,6 +57,8 @@ public:
   vidio_pixel_format_class get_pixel_format_class() const override { return m_format_class; }
 
   __u32 get_v4l2_pixel_format() const { return m_format.pixelformat; }
+
+  const v4l2_fmtdesc& get_v4l2_fmtdesc() const { return m_format; }
 
   vidio_pixel_format get_pixel_format() const override;
 

@@ -32,6 +32,12 @@
 #include <cassert>
 
 
+vidio_v4l_raw_device::~vidio_v4l_raw_device()
+{
+  close();
+  delete m_capture_format;
+}
+
 
 vidio_result<bool> vidio_v4l_raw_device::query_device(const char* filename)
 {
@@ -362,6 +368,10 @@ const vidio_error* vidio_v4l_raw_device::set_capture_format(const vidio_video_fo
 
   assert(m_fd >= 0);
 
+  delete m_capture_format;
+  m_capture_format = dynamic_cast<vidio_video_format_v4l*>(format_v4l->clone());
+  assert(m_capture_format);
+
   int ret;
 
   v4l2_format fmt{};
@@ -582,6 +592,11 @@ const vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_de
                                     (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
+      case V4L2_PIX_FMT_SRGGB8:
+        frame->set_format(vidio_pixel_format_RGGB8, m_capture_width, m_capture_height);
+        frame->add_raw_plane(vidio_color_channel_interleaved, 8);
+        frame->copy_raw_plane(vidio_color_channel_interleaved, (const uint8_t*) buffer.start, buf.bytesused);
+        break;
       default: {
         auto* err = new vidio_error(vidio_error_code_internal_error, "Unsupported V4L2 pixel format ({0})");
         err->set_arg(0, fourcc_to_string(m_capture_pixel_format));
@@ -616,6 +631,11 @@ const vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_de
   }
 
   m_buffers.clear();
+
+  if (strncmp((const char*)(m_caps.card), "Creative WebCam Live! Motion", 32)==0) {
+    // This camera needs to be closed after capturing. Otherwise it won't accept a different S_FMT.
+    close();
+  }
 
   return nullptr;
 }

@@ -197,6 +197,10 @@ void vidio_format_converter_swscale::push(const vidio_frame* in_frame)
       input_av_format = AV_PIX_FMT_YUYV422;
       in_data[0] = in_frame->get_plane(vidio_color_channel_interleaved, &in_stride[0]);
       break;
+    case vidio_pixel_format_RGGB8:
+      input_av_format = AV_PIX_FMT_BAYER_RGGB8;
+      in_data[0] = in_frame->get_plane(vidio_color_channel_interleaved, &in_stride[0]);
+      break;
     default:
       assert(false);
       break;
@@ -218,6 +222,11 @@ void vidio_format_converter_swscale::push(const vidio_frame* in_frame)
     case vidio_pixel_format_YUV422_YUYV:
       output_av_format = AV_PIX_FMT_YUYV422;
       out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 16);
+      out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
+      break;
+    case vidio_pixel_format_RGGB8:
+      output_av_format = AV_PIX_FMT_BAYER_RGGB8;
+      out_frame->add_raw_plane(vidio_color_channel_interleaved, w, h, 8);
       out_data[0] = out_frame->get_plane(vidio_color_channel_interleaved, &out_stride[0]);
       break;
     default:

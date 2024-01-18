@@ -29,6 +29,8 @@
 struct vidio_v4l_raw_device
 {
 public:
+  ~vidio_v4l_raw_device();
+
   vidio_result<bool> query_device(const char* filename);
 
   std::string get_bus_info() const { return {(char*) &m_caps.bus_info[0]}; }
@@ -88,6 +90,8 @@ private:
 
   vidio_result<std::vector<v4l2_frmivalenum>> list_v4l_frameintervals(__u32 pixel_type, __u32 width, __u32 height) const;
 
+
+  const vidio_video_format_v4l* m_capture_format = nullptr;  // this is a copy, it has to be freed
 
   __u32 m_capture_pixel_format;
   vidio_pixel_format m_capture_vidio_pixel_format;

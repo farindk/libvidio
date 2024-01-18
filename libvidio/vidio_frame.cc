@@ -77,6 +77,7 @@ void vidio_frame::get_chroma_size(int& cw, int& ch) const
     case vidio_pixel_format_MJPEG:
     case vidio_pixel_format_H264:
     case vidio_pixel_format_H265:
+    case vidio_pixel_format_RGGB8:
       assert(false);
       cw = ch = 0;
       return;

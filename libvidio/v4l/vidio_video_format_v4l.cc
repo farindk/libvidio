@@ -133,6 +133,18 @@ std::string vidio_video_format_v4l::serialize(vidio_serialization_format serialf
 }
 
 
+vidio_video_format_v4l::vidio_video_format_v4l(const vidio_video_format_v4l& fmt)
+{
+  *this = fmt;
+}
+
+
+vidio_video_format* vidio_video_format_v4l::clone() const
+{
+  return new vidio_video_format_v4l(*this);
+}
+
+
 vidio_pixel_format vidio_video_format_v4l::get_pixel_format() const
 {
   return v4l_pixelformat_to_pixel_format(m_format.pixelformat);;

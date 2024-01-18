@@ -33,6 +33,8 @@ struct vidio_video_format
 public:
   virtual ~vidio_video_format() = default;
 
+  virtual vidio_video_format* clone() const = 0;
+
   virtual uint32_t get_width() const = 0;
 
   virtual uint32_t get_height() const = 0;

@@ -23,9 +23,12 @@
 #include <iostream>
 #include <mutex>
 #include <condition_variable>
+#include <unistd.h>
 
 
 vidio_format_converter* converter = nullptr;
+
+static int cnt = 1;
 
 bool save_frame(const vidio_frame* frame)
 {
@@ -48,8 +51,6 @@ bool save_frame(const vidio_frame* frame)
   std::cout << vidio_frame_get_width(frame) << " x " << vidio_frame_get_height(frame) << "\n";
 
   vidio_format_converter_push_compressed(converter, frame);
-
-  static int cnt = 1;
 
   for (;;) {
     vidio_frame* rgbFrame = vidio_format_converter_pull_decompressed(converter);
@@ -78,15 +79,6 @@ bool save_frame(const vidio_frame* frame)
 
   //vidio_frame_release(frame);
 
-  return cnt >= 150;
-}
-
-
-bool cnt_frame(const vidio_frame* frame)
-{
-  static int cnt = 1;
-  printf("CNT = %d\n", cnt);
-  cnt++;
   return cnt >= 150;
 }
 
@@ -213,8 +205,8 @@ int main(int argc, char** argv)
 
     size_t idx = 0;
     for (; idx < nFormats; idx++) {
-      if (vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_YUV &&
-          vidio_video_format_get_width(formats[idx]) == 640) {
+      if (true /*vidio_video_format_get_pixel_format_class(formats[idx]) == vidio_pixel_format_class_YUV &&
+          vidio_video_format_get_width(formats[idx]) == 640*/) {
         selected_format = formats[idx];
         selected_device = devices[i];
 
