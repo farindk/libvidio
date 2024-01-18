@@ -16,6 +16,9 @@ This ensures ABI backwards compatibility and easy integration into other languag
 
 While we are on a version 0.y.z, the API is unstable.
 
+The public C API is in `libvidio/vidio.h`.
+The function reference documentation is also there.
+
 ## Step by step tutorial
 
 ### Get connected cameras
@@ -76,7 +79,7 @@ err = vidio_input_configure_capture((vidio_input*) selected_device, selected_for
 ````
 
 Note that the `vidio_input_device` is casted to `vidio_input`.
-This is because there is a *class* hierarchy of input devices. As `vidio_input_device` is derived from `vidio_input`,
+This is because there is a class hierarchy of input devices. As `vidio_input_device` is derived from `vidio_input`,
 it can be used at all places where a `vidio_input` argument is needed.
 
 ### Start capturing (C interface)
@@ -104,7 +107,7 @@ err = vidio_input_start_capturing((vidio_input*)selected_device);
 This function is non-blocking. It will start the capturing in a background process.
 
 The work done in the callback should be as fast as possible as this runs in the main capturing loop.
-That means that you should not process the captured images in this callback, but get and process the frames
+That means that you should not process the captured images in this callback. Instead, dequeue and process the frames
 in a separate thread.
 
 When a `vidio_input_message_new_frame` message is received, you can get the frames that are currently queued up
@@ -137,10 +140,6 @@ err = capturingLoop.start_with_vidio_input(input, vidio_capturing_loop::run_mode
 
 With the `run_mode` argument, you can decide whether the capturing loop should be blocking (until the stream ends or
 streaming is stopped explicitly) or run non-blocking in a separate thread.
-
-converter = vidio_create_format_converter(vidio_video_format_get_pixel_format(selected_format),
-vidio_pixel_format_RGB8);
-}
 
 ### Format conversion
 
