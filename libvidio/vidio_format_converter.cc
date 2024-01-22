@@ -54,6 +54,12 @@ vidio_format_converter* vidio_format_converter::create(vidio_pixel_format in, vi
     converter->init(AV_CODEC_ID_H264, out);
     return converter;
   }
+  else if (in == vidio_pixel_format_H265) {
+    //return new vidio_format_converter_function(mjpeg_to_rgb8_ffmpeg);
+    auto* converter = new vidio_format_converter_ffmpeg();
+    converter->init(AV_CODEC_ID_H265, out);
+    return converter;
+  }
   else {
     //return new vidio_format_converter_function(yuyv_to_rgb8);
     return new vidio_format_converter_swscale(out);

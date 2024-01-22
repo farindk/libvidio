@@ -350,6 +350,8 @@ static vidio_pixel_format v4l2_pixelformat_to_vidio_format(__u32 v4l_format)
       return vidio_pixel_format_MJPEG;
     case V4L2_PIX_FMT_H264:
       return vidio_pixel_format_H264;
+    case V4L2_PIX_FMT_HEVC:
+      return vidio_pixel_format_H265;
 
     default:
       return vidio_pixel_format_undefined;
@@ -588,7 +590,13 @@ const vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_de
       case V4L2_PIX_FMT_H264_NO_SC:
       case V4L2_PIX_FMT_H264_SLICE:
         frame->set_format(vidio_pixel_format_H264, m_capture_width, m_capture_height);
-        frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_MJPEG, 8,
+        frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_H264, 8,
+                                    (const uint8_t*) buffer.start, buf.bytesused,
+                                    m_capture_width, m_capture_height);
+        break;
+      case V4L2_PIX_FMT_HEVC:
+        frame->set_format(vidio_pixel_format_H265, m_capture_width, m_capture_height);
+        frame->add_compressed_plane(vidio_color_channel_compressed, vidio_channel_format_compressed_H265, 8,
                                     (const uint8_t*) buffer.start, buf.bytesused,
                                     m_capture_width, m_capture_height);
         break;
