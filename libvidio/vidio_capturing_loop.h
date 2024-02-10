@@ -166,7 +166,9 @@ private:
       }
     }
     else {
-      me->m_on_stream_message(msg);
+      if (me->m_on_stream_message) {
+	me->m_on_stream_message(msg);
+      }
     }
   }
 };
