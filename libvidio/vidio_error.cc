@@ -21,6 +21,7 @@
 #include "vidio_error.h"
 #include <regex>
 #include <errno.h>
+#include <string.h>
 
 std::string vidio_error::get_formatted_message() const
 {
