@@ -25,13 +25,17 @@
 #include "libvidio/v4l/vidio_input_device_v4l.h"
 #endif
 
+#if WITH_RTSP
+#include "libvidio/rtsp/vidio_input_device_rtsp.h"
+#endif
+
 #if WITH_JSON
 #include "nlohmann/json.hpp"
 #endif
 
 
-vidio_input_device_v4l* vidio_input::find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serializedString,
-                                                          vidio_serialization_format serialformat)
+vidio_input* vidio_input::find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serializedString,
+                                               vidio_serialization_format serialformat)
 {
 #if WITH_JSON
   if (serialformat == vidio_serialization_format_json) {
@@ -42,9 +46,16 @@ vidio_input_device_v4l* vidio_input::find_matching_device(const std::vector<vidi
     }
 
     std::string cl = json["class"];
+#if WITH_VIDEO4LINUX2
     if (cl == "v4l2") {
       return vidio_input_device_v4l::find_matching_device(inputs, json);
     }
+#endif
+#if WITH_RTSP
+    if (cl == "rtsp") {
+      return vidio_input_device_rtsp::find_matching_device(inputs, json);
+    }
+#endif
   }
 #endif
 

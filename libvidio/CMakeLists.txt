@@ -70,6 +70,11 @@ if (WITH_JSON)
     target_compile_definitions(vidio PRIVATE WITH_JSON)
 endif ()
 
+if (WITH_RTSP)
+    target_compile_definitions(vidio PRIVATE WITH_RTSP)
+    add_subdirectory(rtsp)
+endif ()
+
 if (FFMPEG_avcodec_FOUND)
     target_compile_definitions(vidio PRIVATE WITH_FFMPEG)
     target_link_libraries(vidio PRIVATE ${FFMPEG_LIBRARIES})

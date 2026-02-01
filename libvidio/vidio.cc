@@ -25,7 +25,12 @@
 #include "libvidio/vidio_video_format.h"
 #include "libvidio/vidio_format_converter.h"
 #include "libvidio/colorconversion/converter.h"
+#if WITH_VIDEO4LINUX2
 #include "libvidio/v4l/vidio_input_device_v4l.h"
+#endif
+#if WITH_RTSP
+#include "libvidio/rtsp/vidio_input_device_rtsp.h"
+#endif
 #include <cassert>
 #include <cstring>
 
@@ -470,4 +475,80 @@ const vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input)
 void vidio_input_pop_next_frame(struct vidio_input* input)
 {
   input->pop_next_frame();
+}
+
+
+void vidio_input_release(struct vidio_input* input)
+{
+  delete input;
+}
+
+
+// === RTSP Input ===
+
+vidio_input* vidio_create_rtsp_input(const char* url)
+{
+#if WITH_RTSP
+  if (!url) {
+    return nullptr;
+  }
+  return vidio_input_device_rtsp::create(url);
+#else
+  (void)url;
+  return nullptr;
+#endif
+}
+
+
+vidio_input* vidio_create_rtsp_input_with_auth(const char* url,
+                                               const char* username,
+                                               const char* password)
+{
+#if WITH_RTSP
+  if (!url) {
+    return nullptr;
+  }
+  return vidio_input_device_rtsp::create(url,
+                                         username ? username : "",
+                                         password ? password : "");
+#else
+  (void)url;
+  (void)username;
+  (void)password;
+  return nullptr;
+#endif
+}
+
+
+void vidio_rtsp_set_transport(vidio_input* input, vidio_rtsp_transport transport)
+{
+#if WITH_RTSP
+  if (!input) {
+    return;
+  }
+  auto* rtsp_input = dynamic_cast<vidio_input_device_rtsp*>(input);
+  if (rtsp_input) {
+    rtsp_input->set_transport(transport);
+  }
+#else
+  (void)input;
+  (void)transport;
+#endif
+}
+
+
+void vidio_rtsp_set_timeout_seconds(vidio_input* input, int timeout_seconds)
+{
+#if WITH_RTSP
+  if (!input) {
+    return;
+  }
+  auto* rtsp_input = dynamic_cast<vidio_input_device_rtsp*>(input);
+  if (rtsp_input) {
+    rtsp_input->set_timeout_seconds(timeout_seconds);
+  }
+#else
+  (void)input;
+  (void)timeout_seconds;
+#endif
 }

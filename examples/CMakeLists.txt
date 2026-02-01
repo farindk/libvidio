@@ -23,3 +23,20 @@ endif ()
 target_link_libraries(vidio-grab PRIVATE vidio)
 install(TARGETS vidio-grab RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
 # install(FILES vidio-grab.1 DESTINATION ${CMAKE_INSTALL_MANDIR}/man1)
+
+# RTSP grab example
+if (WITH_RTSP)
+    add_executable(vidio-rtsp-grab ${getopt_sources}
+            vidio_rtsp_grab.cc
+    )
+
+    if (SDL2_FOUND)
+        target_sources(vidio-rtsp-grab PRIVATE sdl_window.h sdl_window.cc)
+        target_compile_definitions(vidio-rtsp-grab PRIVATE WITH_SDL)
+        target_include_directories(vidio-rtsp-grab PRIVATE ${SDL2_INCLUDE_DIRS})
+        target_link_libraries(vidio-rtsp-grab PRIVATE ${SDL2_LIBRARIES})
+    endif ()
+
+    target_link_libraries(vidio-rtsp-grab PRIVATE vidio)
+    install(TARGETS vidio-rtsp-grab RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
+endif ()

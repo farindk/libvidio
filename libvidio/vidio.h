@@ -100,7 +100,15 @@ enum vidio_error_code
   vidio_error_code_cannot_start_capturing = 10,
   vidio_error_code_error_while_capturing = 11,
   vidio_error_code_cannot_stop_capturing = 12,
-  vidio_error_code_cannot_free_capturing_buffers = 13
+  vidio_error_code_cannot_free_capturing_buffers = 13,
+
+  // RTSP error codes (20-29)
+  vidio_error_code_rtsp_connection_failed = 20,
+  vidio_error_code_rtsp_authentication_failed = 21,
+  vidio_error_code_rtsp_stream_not_found = 22,
+  vidio_error_code_rtsp_connection_lost = 23,
+  vidio_error_code_rtsp_timeout = 24,
+  vidio_error_code_rtsp_unsupported_codec = 25
 };
 
 LIBVIDIO_API void vidio_error_free(const struct vidio_error*);
@@ -324,7 +332,15 @@ struct vidio_input_device_filter;
 
 enum vidio_input_source
 {
-  vidio_input_source_Video4Linux2 = 1
+  vidio_input_source_Video4Linux2 = 1,
+  vidio_input_source_RTSP = 2
+};
+
+enum vidio_rtsp_transport
+{
+  vidio_rtsp_transport_auto = 0,
+  vidio_rtsp_transport_tcp = 1,
+  vidio_rtsp_transport_udp = 2
 };
 
 enum vidio_input_message
@@ -383,6 +399,53 @@ LIBVIDIO_API const struct vidio_error* vidio_input_stop_capturing(struct vidio_i
 LIBVIDIO_API const struct vidio_frame* vidio_input_peek_next_frame(struct vidio_input* input);
 
 LIBVIDIO_API void vidio_input_pop_next_frame(struct vidio_input* input);
+
+LIBVIDIO_API void vidio_input_release(struct vidio_input* input);
+
+
+// === RTSP Input ===
+
+/**
+ * Create an RTSP input from a URL.
+ * The URL format is: rtsp://[user:pass@]host[:port]/path
+ *
+ * @param url The RTSP URL to connect to.
+ * @return A new vidio_input for RTSP streaming, or NULL if RTSP support is not compiled in.
+ */
+LIBVIDIO_API struct vidio_input* vidio_create_rtsp_input(const char* url);
+
+/**
+ * Create an RTSP input with separate credentials.
+ * This keeps credentials out of the URL, avoiding accidental exposure
+ * in logs or when the URL is displayed.
+ *
+ * @param url The RTSP URL to connect to (without credentials).
+ * @param username The username for authentication (may be NULL).
+ * @param password The password for authentication (may be NULL).
+ * @return A new vidio_input for RTSP streaming, or NULL if RTSP support is not compiled in.
+ */
+LIBVIDIO_API struct vidio_input* vidio_create_rtsp_input_with_auth(const char* url,
+                                                                    const char* username,
+                                                                    const char* password);
+
+/**
+ * Set the RTSP transport protocol.
+ * Must be called before starting capture.
+ *
+ * @param input The RTSP input.
+ * @param transport The transport protocol to use (auto, tcp, or udp).
+ */
+LIBVIDIO_API void vidio_rtsp_set_transport(struct vidio_input* input, enum vidio_rtsp_transport transport);
+
+/**
+ * Set the connection timeout for RTSP operations.
+ * Must be called before starting capture.
+ *
+ * @param input The RTSP input.
+ * @param timeout_seconds Timeout in seconds (default is 10).
+ */
+LIBVIDIO_API void vidio_rtsp_set_timeout_seconds(struct vidio_input* input, int timeout_seconds);
+
 }
 
 #endif //LIBVIDIO_VIDIO_H

@@ -57,7 +57,7 @@ public:
 
   virtual std::string serialize(vidio_serialization_format serialformat) const { return {}; }
 
-  static vidio_input_device_v4l* find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serialData, vidio_serialization_format serialformat);
+  static vidio_input* find_matching_device(const std::vector<vidio_input*>& inputs, const std::string& serialData, vidio_serialization_format serialformat);
 
 private:
   void (* m_message_callback)(enum vidio_input_message, void* userData) = nullptr;
