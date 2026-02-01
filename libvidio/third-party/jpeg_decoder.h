@@ -107,7 +107,7 @@ namespace Jpeg
         struct Context {
             DecodeResult error;
             const unsigned char *pos;
-            int size;
+            int32_t size;
             int length;
             int width, height;
             int mbwidth, mbheight;
@@ -440,7 +440,7 @@ namespace Jpeg
         }
 
         inline void _DecodeBlock(Component* c, unsigned char* out) {
-            unsigned char code;
+            unsigned char code = 0;
             int value, coef = 0;
             memset(ctx.block, 0, sizeof(ctx.block));
             c->dcpred += _GetVLC(&ctx.vlctab[c->dctabsel][0], NULL);
@@ -620,9 +620,9 @@ namespace Jpeg
             }
         }
 
-        DecodeResult _Decode(const unsigned char* jpeg, const int size) {
+        DecodeResult _Decode(const unsigned char* jpeg, size_t size) {
             ctx.pos = (const unsigned char*) jpeg;
-            ctx.size = size & 0x7FFFFFFF;
+            ctx.size = static_cast<int32_t>(size & 0x7FFFFFFF);
             if (ctx.size < 2) return NotAJpeg;
             if ((ctx.pos[0] ^ 0xFF) | (ctx.pos[1] ^ 0xD8)) return NotAJpeg;
             _Skip(2);

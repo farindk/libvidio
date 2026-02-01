@@ -60,7 +60,7 @@ void vidio_frame::add_raw_plane(vidio_color_channel channel, int bpp)
 
     case vidio_color_channel_U:
     case vidio_color_channel_V: {
-      int cw, ch;
+      int cw = 0, ch = 0;
       get_chroma_size(cw, ch);
       add_raw_plane(channel, cw, ch, bpp);
       break;

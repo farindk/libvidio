@@ -126,7 +126,7 @@ vidio_frame* vidio_format_converter_ffmpeg::convert_avframe_to_vidio_frame(AVPix
   int w = input->width;
   int h = input->height;
 
-  AVPixelFormat output_av_format;
+  AVPixelFormat output_av_format = AV_PIX_FMT_NONE;
 
   vidio_frame* out_frame = new vidio_frame();
   out_frame->set_format(output_format, w, h);
@@ -182,8 +182,8 @@ void vidio_format_converter_swscale::push(const vidio_frame* in_frame)
   int w = in_frame->get_width();
   int h = in_frame->get_height();
 
-  AVPixelFormat input_av_format;
-  AVPixelFormat output_av_format;
+  AVPixelFormat input_av_format = AV_PIX_FMT_NONE;
+  AVPixelFormat output_av_format = AV_PIX_FMT_NONE;
 
   const uint8_t* in_data[3];
   int in_stride[3];
