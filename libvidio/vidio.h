@@ -218,6 +218,23 @@ LIBVIDIO_API const uint8_t* vidio_frame_get_color_plane_readonly(const struct vi
 
 LIBVIDIO_API uint64_t vidio_frame_get_timestamp_us(const struct vidio_frame*);
 
+// Keyframe flag (for compressed frames: H264/H265/MJPEG)
+LIBVIDIO_API vidio_bool vidio_frame_is_keyframe(const struct vidio_frame*);
+LIBVIDIO_API void vidio_frame_set_keyframe(struct vidio_frame*, vidio_bool);
+
+// Decode timestamp (for B-frame support in H264/H265)
+LIBVIDIO_API void vidio_frame_set_dts_us(struct vidio_frame*, int64_t dts_us);
+LIBVIDIO_API vidio_bool vidio_frame_has_dts(const struct vidio_frame*);
+LIBVIDIO_API int64_t vidio_frame_get_dts_us(const struct vidio_frame*);
+
+// Codec extradata (SPS/PPS for H264, SPS/PPS/VPS for H265)
+LIBVIDIO_API void vidio_frame_set_codec_extradata(struct vidio_frame*, const uint8_t* data, int size);
+LIBVIDIO_API vidio_bool vidio_frame_has_codec_extradata(const struct vidio_frame*);
+LIBVIDIO_API const uint8_t* vidio_frame_get_codec_extradata(const struct vidio_frame*, int* out_size);
+
+// Deep copy of a frame (all planes and metadata)
+LIBVIDIO_API struct vidio_frame* vidio_frame_clone(const struct vidio_frame*);
+
 
 // === Format Conversion ===
 

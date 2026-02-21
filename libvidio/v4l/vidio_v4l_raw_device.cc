@@ -616,6 +616,13 @@ const vidio_error* vidio_v4l_raw_device::start_capturing_blocking(vidio_input_de
     uint64_t timestamp = buf.timestamp.tv_sec * 1000000 + buf.timestamp.tv_usec;
     frame->set_timestamp_us(timestamp);
 
+    // Set keyframe flag for compressed formats from V4L2 buffer flags
+    if (m_capture_vidio_pixel_format == vidio_pixel_format_H264 ||
+        m_capture_vidio_pixel_format == vidio_pixel_format_H265 ||
+        m_capture_vidio_pixel_format == vidio_pixel_format_MJPEG) {
+      frame->set_keyframe((buf.flags & V4L2_BUF_FLAG_KEYFRAME) != 0);
+    }
+
     input_device->push_frame_into_queue(frame);
 
     // --- re-queue buffer

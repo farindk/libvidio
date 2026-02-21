@@ -271,6 +271,54 @@ uint64_t vidio_frame_get_timestamp_us(const vidio_frame* f)
   return f->get_timestamp_us();
 }
 
+vidio_bool vidio_frame_is_keyframe(const vidio_frame* f)
+{
+  return f->is_keyframe();
+}
+
+void vidio_frame_set_keyframe(vidio_frame* f, vidio_bool is_keyframe)
+{
+  f->set_keyframe(is_keyframe);
+}
+
+void vidio_frame_set_dts_us(vidio_frame* f, int64_t dts_us)
+{
+  f->set_dts_us(dts_us);
+}
+
+vidio_bool vidio_frame_has_dts(const vidio_frame* f)
+{
+  return f->has_dts();
+}
+
+int64_t vidio_frame_get_dts_us(const vidio_frame* f)
+{
+  return f->get_dts_us();
+}
+
+void vidio_frame_set_codec_extradata(vidio_frame* f, const uint8_t* data, int size)
+{
+  f->set_codec_extradata(data, size);
+}
+
+vidio_bool vidio_frame_has_codec_extradata(const vidio_frame* f)
+{
+  return f->has_codec_extradata();
+}
+
+const uint8_t* vidio_frame_get_codec_extradata(const vidio_frame* f, int* out_size)
+{
+  if (out_size) {
+    *out_size = f->get_codec_extradata_size();
+  }
+  return f->get_codec_extradata();
+}
+
+vidio_frame* vidio_frame_clone(const vidio_frame* f)
+{
+  return f->clone();
+}
+
 
 const struct vidio_video_format* const*
 vidio_input_get_video_formats(const struct vidio_input* input, size_t* out_number)

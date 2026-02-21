@@ -23,6 +23,7 @@
 
 #include "vidio.h"
 #include <map>
+#include <vector>
 
 
 struct vidio_frame
@@ -68,9 +69,37 @@ public:
 
   uint64_t get_timestamp_us() const { return m_timestamp_us; }
 
+  // --- keyframe ---
+
+  void set_keyframe(bool is_keyframe) { m_is_keyframe = is_keyframe; }
+
+  bool is_keyframe() const { return m_is_keyframe; }
+
+  // --- DTS (decode timestamp) ---
+
+  void set_dts_us(int64_t dts_us) { m_dts_us = dts_us; m_has_dts = true; }
+
+  bool has_dts() const { return m_has_dts; }
+
+  int64_t get_dts_us() const { return m_dts_us; }
+
+  // --- codec extradata (SPS/PPS/VPS for H264/H265) ---
+
+  void set_codec_extradata(const uint8_t* data, int size);
+
+  bool has_codec_extradata() const { return !m_codec_extradata.empty(); }
+
+  const uint8_t* get_codec_extradata() const { return m_codec_extradata.data(); }
+
+  int get_codec_extradata_size() const { return static_cast<int>(m_codec_extradata.size()); }
+
+  // --- clone ---
+
+  vidio_frame* clone() const;
+
 private:
-  int m_width, m_height;
-  vidio_pixel_format m_format;
+  int m_width = 0, m_height = 0;
+  vidio_pixel_format m_format = vidio_pixel_format_undefined;
 
   struct Plane
   {
@@ -85,7 +114,11 @@ private:
 
   std::map<vidio_color_channel, Plane> m_planes;
 
-  uint64_t m_timestamp_us;
+  uint64_t m_timestamp_us = 0;
+  bool m_is_keyframe = true;  // default true: uncompressed frames are always independently decodable
+  bool m_has_dts = false;
+  int64_t m_dts_us = 0;
+  std::vector<uint8_t> m_codec_extradata;
 
   void get_chroma_size(int& cw, int& ch) const;
 

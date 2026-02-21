@@ -250,11 +250,26 @@ void vidio_rtsp_stream::start_capturing_blocking(vidio_input_device_rtsp* device
                                   pkt->data, pkt->size,
                                   m_width, m_height);
 
+      // Set keyframe flag
+      frame->set_keyframe((pkt->flags & AV_PKT_FLAG_KEY) != 0);
+
       // Set timestamp if available
+      AVRational time_base = m_av_format_context->streams[m_video_stream_index]->time_base;
       if (pkt->pts != AV_NOPTS_VALUE) {
-        AVRational time_base = m_av_format_context->streams[m_video_stream_index]->time_base;
         int64_t pts_us = av_rescale_q(pkt->pts, time_base, {1, 1000000});
         frame->set_timestamp_us(static_cast<uint64_t>(pts_us));
+      }
+
+      // Set DTS if available (for B-frame support)
+      if (pkt->dts != AV_NOPTS_VALUE) {
+        int64_t dts_us = av_rescale_q(pkt->dts, time_base, {1, 1000000});
+        frame->set_dts_us(dts_us);
+      }
+
+      // Attach codec extradata to keyframes (SPS/PPS/VPS)
+      AVCodecParameters* codecpar = m_av_format_context->streams[m_video_stream_index]->codecpar;
+      if (frame->is_keyframe() && codecpar->extradata && codecpar->extradata_size > 0) {
+        frame->set_codec_extradata(codecpar->extradata, codecpar->extradata_size);
       }
 
       device->push_frame_into_queue(frame);

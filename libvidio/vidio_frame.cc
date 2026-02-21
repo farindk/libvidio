@@ -207,4 +207,50 @@ void vidio_frame::copy_raw_plane(vidio_color_channel channel, const void* mem, s
 void vidio_frame::copy_metadata_from(const vidio_frame* source)
 {
   m_timestamp_us = source->get_timestamp_us();
+  m_is_keyframe = source->is_keyframe();
+  m_has_dts = source->has_dts();
+  m_dts_us = source->get_dts_us();
+  if (source->has_codec_extradata()) {
+    set_codec_extradata(source->get_codec_extradata(), source->get_codec_extradata_size());
+  }
+}
+
+
+void vidio_frame::set_codec_extradata(const uint8_t* data, int size)
+{
+  if (data && size > 0) {
+    m_codec_extradata.assign(data, data + size);
+  }
+  else {
+    m_codec_extradata.clear();
+  }
+}
+
+
+vidio_frame* vidio_frame::clone() const
+{
+  auto* f = new vidio_frame();
+  f->set_format(m_format, m_width, m_height);
+
+  for (const auto& [channel, plane] : m_planes) {
+    if (plane.format == vidio_channel_format_pixels) {
+      f->add_raw_plane(channel, plane.w, plane.h, plane.bpp);
+      int dst_stride;
+      uint8_t* dst = f->get_plane(channel, &dst_stride);
+      int bytes_per_pixel = (plane.bpp + 7) / 8;
+      int row_bytes = plane.w * bytes_per_pixel;
+      for (int y = 0; y < plane.h; y++) {
+        memcpy(dst + y * dst_stride, plane.mem + y * plane.stride, row_bytes);
+      }
+    }
+    else {
+      // Compressed plane: stride holds memory size
+      f->add_compressed_plane(channel, plane.format, plane.bpp,
+                              plane.mem, plane.stride,
+                              plane.w, plane.h);
+    }
+  }
+
+  f->copy_metadata_from(this);
+  return f;
 }
