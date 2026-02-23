@@ -29,6 +29,10 @@
 #include "libvidio/rtsp/vidio_input_device_rtsp.h"
 #endif
 
+#if WITH_FILE_INPUT
+#include "libvidio/file/vidio_input_file.h"
+#endif
+
 #if WITH_JSON
 #include "nlohmann/json.hpp"
 #endif
@@ -54,6 +58,11 @@ vidio_input* vidio_input::find_matching_device(const std::vector<vidio_input*>& 
 #if WITH_RTSP
     if (cl == "rtsp") {
       return vidio_input_device_rtsp::find_matching_device(inputs, json);
+    }
+#endif
+#if WITH_FILE_INPUT
+    if (cl == "file") {
+      return vidio_input_file::find_matching_device(inputs, json);
     }
 #endif
   }

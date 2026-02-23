@@ -108,7 +108,13 @@ enum vidio_error_code
   vidio_error_code_rtsp_stream_not_found = 22,
   vidio_error_code_rtsp_connection_lost = 23,
   vidio_error_code_rtsp_timeout = 24,
-  vidio_error_code_rtsp_unsupported_codec = 25
+  vidio_error_code_rtsp_unsupported_codec = 25,
+
+  // File input error codes (30-39)
+  vidio_error_code_file_not_found = 30,
+  vidio_error_code_file_no_video_stream = 31,
+  vidio_error_code_file_unsupported_codec = 32,
+  vidio_error_code_file_read_error = 33
 };
 
 LIBVIDIO_API void vidio_error_free(const struct vidio_error*);
@@ -350,7 +356,8 @@ struct vidio_input_device_filter;
 enum vidio_input_source
 {
   vidio_input_source_Video4Linux2 = 1,
-  vidio_input_source_RTSP = 2
+  vidio_input_source_RTSP = 2,
+  vidio_input_source_File = 3
 };
 
 enum vidio_rtsp_transport
@@ -462,6 +469,50 @@ LIBVIDIO_API void vidio_rtsp_set_transport(struct vidio_input* input, enum vidio
  * @param timeout_seconds Timeout in seconds (default is 10).
  */
 LIBVIDIO_API void vidio_rtsp_set_timeout_seconds(struct vidio_input* input, int timeout_seconds);
+
+
+// === File Input ===
+
+/**
+ * Create a file input from a file path.
+ * Supported formats depend on FFmpeg (MP4, AVI, MKV, WebM, etc.).
+ * H264, H265, and MJPEG files pass through as compressed packets.
+ * All other codecs are decoded internally and delivered as raw YUV420 frames.
+ *
+ * @param file_path Path to the video file.
+ * @return A new vidio_input for file playback, or NULL if file input support is not compiled in.
+ */
+LIBVIDIO_API struct vidio_input* vidio_create_file_input(const char* file_path);
+
+/**
+ * Enable or disable looping for file input.
+ * When enabled (default), the video restarts from the beginning when it reaches the end.
+ * When disabled, an end_of_stream message is sent at EOF.
+ *
+ * @param input The file input.
+ * @param loop Whether to loop the video.
+ */
+LIBVIDIO_API void vidio_file_set_loop(struct vidio_input* input, vidio_bool loop);
+
+/**
+ * Set the stop mode for file input.
+ *
+ * - pause (default): stop_capturing() stops the thread but keeps the reader open
+ *   at its current position. start_capturing() resumes from where it left off.
+ * - continue: stop_capturing() is a no-op — the thread keeps running and frames
+ *   overflow/discard when nobody is consuming. start_capturing() reconnects to
+ *   the already-running stream.
+ *
+ * @param input The file input.
+ * @param mode The stop mode to use.
+ */
+enum vidio_file_stop_mode
+{
+  vidio_file_stop_mode_pause = 0,
+  vidio_file_stop_mode_continue = 1
+};
+
+LIBVIDIO_API void vidio_file_set_stop_mode(struct vidio_input* input, enum vidio_file_stop_mode mode);
 
 }
 

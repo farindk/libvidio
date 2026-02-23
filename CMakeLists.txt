@@ -85,6 +85,17 @@ if (WITH_RTSP)
     endif()
 endif()
 
+# File input support (requires FFmpeg avformat)
+
+option(WITH_FILE_INPUT "Include file input backend" ON)
+if (WITH_FILE_INPUT)
+    find_package(FFMPEG COMPONENTS avformat avcodec avutil swscale)
+    if (NOT FFMPEG_avformat_FOUND)
+        message(WARNING "File input disabled: FFmpeg avformat not found")
+        set(WITH_FILE_INPUT OFF)
+    endif()
+endif()
+
 # --- show configuration summary
 
 macro(feature_message description variable cmake_option)
@@ -105,6 +116,7 @@ endmacro()
 message("----- configuration summary -----")
 feature_message("Linux V4L2 camera backend" WITH_VIDEO4LINUX2 "WITH_VIDEO4LINUX2")
 feature_message("RTSP camera backend" WITH_RTSP "WITH_RTSP")
+feature_message("File input backend" WITH_FILE_INPUT "WITH_FILE_INPUT")
 feature_message("vidio-grab with video display" SDL2_FOUND "WITH_SDL")
 feature_message("configuration serialization to JSON" WITH_JSON "WITH_JSON")
 message("---------------------------------")

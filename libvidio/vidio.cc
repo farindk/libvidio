@@ -31,6 +31,9 @@
 #if WITH_RTSP
 #include "libvidio/rtsp/vidio_input_device_rtsp.h"
 #endif
+#if WITH_FILE_INPUT
+#include "libvidio/file/vidio_input_file.h"
+#endif
 #include <cassert>
 #include <cstring>
 
@@ -598,5 +601,55 @@ void vidio_rtsp_set_timeout_seconds(vidio_input* input, int timeout_seconds)
 #else
   (void)input;
   (void)timeout_seconds;
+#endif
+}
+
+
+// === File Input ===
+
+vidio_input* vidio_create_file_input(const char* file_path)
+{
+#if WITH_FILE_INPUT
+  if (!file_path) {
+    return nullptr;
+  }
+  return vidio_input_file::create(file_path);
+#else
+  (void)file_path;
+  return nullptr;
+#endif
+}
+
+
+void vidio_file_set_loop(vidio_input* input, vidio_bool loop)
+{
+#if WITH_FILE_INPUT
+  if (!input) {
+    return;
+  }
+  auto* file_input = dynamic_cast<vidio_input_file*>(input);
+  if (file_input) {
+    file_input->set_loop(loop != 0);
+  }
+#else
+  (void)input;
+  (void)loop;
+#endif
+}
+
+
+void vidio_file_set_stop_mode(vidio_input* input, vidio_file_stop_mode mode)
+{
+#if WITH_FILE_INPUT
+  if (!input) {
+    return;
+  }
+  auto* file_input = dynamic_cast<vidio_input_file*>(input);
+  if (file_input) {
+    file_input->set_stop_mode(mode);
+  }
+#else
+  (void)input;
+  (void)mode;
 #endif
 }
